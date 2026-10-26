@@ -2,6 +2,8 @@
 
 Usage: python scripts/coursekeep.py URL [-o OUT] [--depth N] [--browser auto|always|never] [--cookies cookies.txt] [--refresh]
 """
+__version__ = "1.0.0"  # the one place the version lives: bump it, add a CHANGELOG entry, tag v<version>
+
 import argparse
 import concurrent.futures as cf
 import datetime
@@ -29,7 +31,7 @@ from urllib3.util.retry import Retry
 
 # Browser-like so sites serve the normal page, with an honest product token at the end.
 UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36 "
-                    "CourseKeep/1.0 (+https://github.com/Mira190/coursekeep)"}
+                    f"CourseKeep/{__version__} (+https://github.com/Mira190/coursekeep)"}
 WINDOWS_RESERVED = {"CON", "PRN", "AUX", "NUL", *(f"COM{i}" for i in range(1, 10)), *(f"LPT{i}" for i in range(1, 10))}
 PER_HOST = 4  # parallel downloads per site: fast, but not a stampede that earns a 429
 KIND_BY_EXT = {
@@ -506,6 +508,7 @@ def main():
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("url")
+    ap.add_argument("--version", action="version", version=f"CourseKeep {__version__}")
     ap.add_argument("-o", "--out", default="downloads")
     ap.add_argument("-j", "--threads", type=int, default=8)
     ap.add_argument("--depth", type=int, default=0, help="also follow same-site pages under the URL's folder, N levels")

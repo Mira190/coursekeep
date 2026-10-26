@@ -36,6 +36,7 @@ a { color: var(--accent); }
 .top { display: flex; align-items: center; gap: 8px; padding: 20px 0; }
 .brand { display: inline-flex; align-items: center; gap: 10px; margin-right: auto; font-weight: 650; letter-spacing: -.01em; color: var(--ink); text-decoration: none; font-size: 17px; }
 .brand svg { width: 28px; height: 28px; }
+.ver { color: var(--ink-3); font-size: 12px; font-weight: 400; }
 .dest, .lang { display: inline-flex; align-items: center; gap: 6px; color: var(--ink-3); font-size: 13px; background: none; border: 0; padding: 6px 8px; border-radius: 8px; cursor: pointer; }
 .dest { min-width: 0; max-width: 50%; }
 .dest:hover, .lang:hover { color: var(--ink); background: var(--surface-2); }
@@ -184,7 +185,7 @@ h2.label { font-size: 13px; text-transform: uppercase; letter-spacing: .08em; co
   <header class="top">
     <a class="brand" href="/" id="home-link">
       <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="var(--accent)"/><path d="M11 8h10a1 1 0 0 1 1 1v15l-6-4-6 4V9a1 1 0 0 1 1-1z" fill="var(--accent-ink)"/></svg>
-      CourseKeep
+      CourseKeep <span class="ver" id="ver"></span>
     </a>
     <button class="dest" id="dest" type="button" hidden>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
@@ -729,6 +730,7 @@ window.addEventListener("beforeunload", (e) => { if (state && !state.finished) {
 applyLang();
 fetch("/api/config").then((r) => r.json()).then((c) => {
   config = c;
+  $("#ver").textContent = c.version ? `v${c.version}` : "";
   $("#dest-path").textContent = c.out.replace(/^([A-Za-z]:)?[\\/](Users|home)[\\/][^\\/]+/, "~");
   $("#dest").hidden = false;
   applyLang();

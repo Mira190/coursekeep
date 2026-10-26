@@ -147,7 +147,9 @@ python scripts/bench.py             # static vs browser on the benchmark sites
 python scripts/bench.py URL ...     # ...or on your own
 ```
 
-CI runs the tests and `ruff` on Windows, macOS and Linux with Python 3.9 and 3.13. Pushing a `v*` tag builds the Windows and macOS apps and attaches them to the release.
+CI runs the tests and `ruff` on Windows, macOS and Linux with Python 3.9 and 3.13.
+
+Releasing: the version lives only in `__version__` at the top of `scripts/coursekeep.py` (`python scripts/coursekeep.py --version`). Bump it, add an entry to [CHANGELOG.md](CHANGELOG.md), commit, then push a matching tag (`git tag v1.0.0 && git push origin v1.0.0`). The release workflow refuses a tag that does not match `__version__`, then builds the Windows and macOS apps and attaches them to the release.
 
 ## Responsible use
 

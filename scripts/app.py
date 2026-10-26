@@ -24,7 +24,7 @@ FROZEN = getattr(sys, "frozen", False)  # running as the packaged CourseKeep.exe
 HERE = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent))
 # Downloads are untrusted: only document types are opened directly, anything else is shown in its folder.
 OPENABLE = {".pdf", ".pptx", ".ppt", ".key", ".odp", ".docx", ".doc", ".odt", ".rtf", ".xlsx", ".xls", ".csv", ".md", ".txt"}
-JOBS, OUT, PORT = {}, Path(), 0
+JOBS, OUT, PORT, VERSION = {}, Path(), 0, ""
 
 
 def engine_cmd():
@@ -112,7 +112,7 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/":
             self.send(200, (HERE / "ui.html").read_bytes(), "text/html; charset=utf-8")
         elif path == "/api/config":
-            self.send(200, {"out": str(OUT)})
+            self.send(200, {"out": str(OUT), "version": VERSION})
         elif (m := re.fullmatch(r"/api/jobs/(\w+)/events", path)) and (job := self.job(m[1])):
             self.events(job)
         elif (m := re.fullmatch(r"/api/jobs/(\w+)/zip", path)) and (job := self.job(m[1])):
@@ -196,7 +196,7 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main():
-    global OUT, PORT
+    global OUT, PORT, VERSION
     if sys.argv[1:2] == ["--engine"]:  # the packaged app calling itself to run one download (see engine_cmd)
         import coursekeep
         sys.stdout.reconfigure(line_buffering=True)  # progress lines must reach the page as they happen
@@ -206,7 +206,9 @@ def main():
     if missing := [m for m in ("requests", "bs4", "lxml", "trafilatura") if importlib.util.find_spec(m) is None]:
         sys.exit(f"CourseKeep needs {', '.join(missing)}. Install everything it uses with:\n"
                  f'  "{sys.executable}" -m pip install -r "{HERE.parent / "requirements.txt"}"')
+    from coursekeep import __version__ as VERSION
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--version", action="version", version=f"CourseKeep {VERSION}")
     ap.add_argument("--port", type=int, default=8765)
     ap.add_argument("--out", default=str(Path.home() / "Downloads" / "CourseKeep"))
     ap.add_argument("--no-browser", action="store_true")
