@@ -1,0 +1,15 @@
+# Downloaded course material: copyrighted, and personal
+downloads/
+
+# Login cookies must never be committed
+cookies*.txt
+*.cookies
+
+__pycache__/
+*.pyc
+*.part
+.venv/
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
