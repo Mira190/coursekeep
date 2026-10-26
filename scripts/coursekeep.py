@@ -354,7 +354,7 @@ class Dedup:
     """Keeps each distinct file once per course, whatever URL or file name it arrived under."""
 
     def __init__(self, out, tracked):
-        self.lock, self.groups, self.keys, self.removed = threading.Lock(), {}, {}, []
+        self.groups, self.keys, self.removed = {}, {}, []
         files = [p for p in out.glob("*/*/*") if p.is_file() and p.suffix != ".part"]
         for p in sorted(files, key=lambda p: (p not in tracked, p.stat().st_mtime)):  # tracked first, then oldest
             twin = self.twin(p)
@@ -378,15 +378,14 @@ class Dedup:
 
     def keep_once(self, p):
         """The earlier identical file (and `p` is deleted), or `p` itself."""
-        with self.lock:
-            self.keys.pop(p, None)  # --refresh may have replaced the bytes at this path
-            if twin := self.twin(p):
-                p.unlink()
-                return twin
-            group = self.groups.setdefault(self.group(p), [])
-            if p not in group:
-                group.append(p)
-            return p
+        self.keys.pop(p, None)  # --refresh may have replaced the bytes at this path
+        if twin := self.twin(p):
+            p.unlink()
+            return twin
+        group = self.groups.setdefault(self.group(p), [])
+        if p not in group:
+            group.append(p)
+        return p
 
 
 def existing(out, job):
@@ -612,7 +611,7 @@ def main():
             status, path = "exists", hit
         else:
             try:
-                status, path = kept(fetch(job, out, a.max_mb))
+                status, path = "ok", fetch(job, out, a.max_mb)
             except NeedsBrowser:
                 return "browser", None  # reported after the second pass below
             except Exception as e:
@@ -631,7 +630,7 @@ def main():
                 raise RuntimeError("no main text found: the page needs JavaScript (not tried: --browser never)")
             md = trafilatura.extract(render_text(job["url"]), output_format="markdown", include_links=True, url=job["url"])
             check_text(md)
-            results[i] = kept(save_article(out / job["sec"], job, job["url"], md))
+            results[i] = ("ok", save_article(out / job["sec"], job, job["url"], md))
         except NeedsBrowser:
             results[i] = ("failed: no main text found, even after running the page's JavaScript", None)
         except Exception as e:
@@ -639,6 +638,8 @@ def main():
         report_line(job, results[i][0])
     if "p" in _pw:
         _pw["p"].stop()
+    # After the parallel downloads and in page order, so the first link to a file always keeps it (not the fastest one).
+    results = [kept(path) if status == "ok" else (status, path) for status, path in results]
 
     today, new = datetime.date.today().isoformat(), 0
     lines, cur, items = [f"# {title}\n\nSource: {a.url}\n"], None, []

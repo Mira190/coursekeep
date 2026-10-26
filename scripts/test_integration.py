@@ -4,6 +4,7 @@ import subprocess
 import sys
 import tempfile
 import threading
+import time
 from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -56,6 +57,8 @@ class Handler(SimpleHTTPRequestHandler):
         pass
 
     def do_GET(self):
+        if self.path == "/files/lec1.pdf":  # its mirror finishes first, yet the earlier link on the page must keep the file
+            time.sleep(0.5)
         if self.path == "/files/cut.pdf":  # promises 100 kB, sends 13 bytes, hangs up
             self.send_response(200)
             self.send_header("Content-Type", "application/pdf")
