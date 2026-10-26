@@ -2,7 +2,7 @@
 
 Usage: python scripts/coursekeep.py URL [-o OUT] [--depth N] [--browser auto|always|never] [--cookies cookies.txt] [--refresh]
 """
-__version__ = "1.0.0"  # the one place the version lives: bump it, add a CHANGELOG entry, tag v<version>
+__version__ = "1.0.1"  # the one place the version lives: bump it, add a CHANGELOG entry, tag v<version>
 
 import argparse
 import concurrent.futures as cf
@@ -14,6 +14,7 @@ import json
 import mimetypes
 import re
 import socket
+import subprocess
 import sys
 import threading
 import time
@@ -41,6 +42,11 @@ KIND_BY_EXT = {
     **dict.fromkeys([".zip", ".tar", ".gz", ".7z", ".rar"], "archives"),
     **dict.fromkeys([".mp4", ".mp3", ".mov", ".webm", ".m4a"], "media"),
 }
+# Never saved: Windows/macOS run these on a double-click, and the server picks the extension ("slides.pdf" can arrive as
+# "slides.exe"). Course material has no reason to be one.
+PROGRAMS = {".exe", ".msi", ".msix", ".appx", ".appinstaller", ".application", ".scr", ".com", ".pif", ".cpl", ".dll", ".sys",
+            ".bat", ".cmd", ".ps1", ".vbs", ".vbe", ".jse", ".wsf", ".wsh", ".hta", ".lnk", ".url", ".scf", ".reg", ".chm",
+            ".iso", ".img", ".vhd", ".vhdx", ".dmg", ".pkg", ".app", ".command", ".jar"}
 # A login page or error page saved as "lecture.pdf" is worse than a reported failure.
 MAGIC = {".pdf": b"%PDF", **dict.fromkeys([".pptx", ".docx", ".xlsx", ".zip"], b"PK"),
          **dict.fromkeys([".ppt", ".doc", ".xls"], b"\xd0\xcf\x11\xe0")}
@@ -459,6 +465,29 @@ def save_article(sec, job, url, md):
     return path
 
 
+def read_page(r, cap=20_000_000):
+    """A linked web page's bytes. An endless or huge page fails instead of eating memory (read timeouts reset on every byte)."""
+    data, deadline = bytearray(), time.monotonic() + 120
+    for chunk in r.iter_content(1 << 16):
+        data += chunk
+        if len(data) > cap or time.monotonic() > deadline:
+            raise RuntimeError("the page is too big or never finishes loading")
+    return bytes(data)
+
+
+def mark_from_internet(path, url):
+    """Tag the file the way a browser tags downloads, so Office opens it in Protected View and programs get a warning."""
+    try:
+        if sys.platform == "win32":
+            with open(f"{path}:Zone.Identifier", "w", encoding="utf-8") as f:
+                f.write(f"[ZoneTransfer]\nZoneId=3\nHostUrl={url}\n")
+        elif sys.platform == "darwin":
+            subprocess.run(["xattr", "-w", "com.apple.quarantine", f"0081;{int(time.time()):x};CourseKeep;", str(path)],
+                           capture_output=True, check=False)
+    except OSError:
+        pass  # FAT/exFAT drives have no place to store the tag
+
+
 def fetch(job, out, max_mb):
     url, dl, sec, limit = job["url"], download_url(job["url"]), out / job["sec"], max_mb * 1_000_000
     if GITHUB_DIR.match(url):
@@ -468,14 +497,17 @@ def fetch(job, out, max_mb):
         if (size := int(r.headers.get("content-length") or 0)) > limit:
             raise RuntimeError(f"too big ({size // 1_000_000} MB > --max-mb {max_mb}), not downloaded")
         if r.headers.get("content-type", "").startswith("text/html"):
+            html = read_page(r)
             if dl != url:
-                if re.search(r"quota|too many users", r.text[:20000], re.I):
+                if re.search(rb"quota|too many users", html[:20000], re.I):
                     raise RuntimeError("Google download quota exceeded: too many users downloaded this file recently")
                 raise RuntimeError("got a web page instead of the file (private or needs login?)")
-            md = trafilatura.extract(r.content, output_format="markdown", include_links=True, url=url)
+            md = trafilatura.extract(html, output_format="markdown", include_links=True, url=url)
             check_text(md)
             return save_article(sec, job, url, md)
         ext = ext_of(r, dl)
+        if ext in PROGRAMS:
+            raise RuntimeError(f"program file ({ext}), not downloaded: open the link yourself only if you trust it")
         chunks = r.iter_content(1 << 16)
         first = next(chunks, b"")
         if (magic := MAGIC.get(ext)) and not first.startswith(magic):
@@ -500,6 +532,7 @@ def fetch(job, out, max_mb):
             tmp.unlink()
             raise RuntimeError(problem)
         tmp.replace(path)
+        mark_from_internet(path, dl)
         return path
 
 
@@ -658,7 +691,8 @@ def main():
         if job["sec"] != cur:
             cur = job["sec"]
             lines.append(f"\n## {cur}\n")
-        lines.append(f"- {'🆕 ' if is_new else ''}{job['name']} — {f'[{rel}](<{rel}>)' if rel else status} — <{job['url']}>")
+        md_name, md_rel = ((s or "").replace("[", "\\[").replace("]", "\\]") for s in (job["name"], rel))  # page text never becomes a link
+        lines.append(f"- {'🆕 ' if is_new else ''}{md_name} — {f'[{md_rel}](<{rel}>)' if rel else status} — <{job['url']}>")
     (out / "index.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
     mpath.write_text(json.dumps(manifest, ensure_ascii=False, indent=1), encoding="utf-8")
     (out / "report.json").write_text(json.dumps({"title": title, "url": a.url, "folder": str(out.resolve()), "items": items,

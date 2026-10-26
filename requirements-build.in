@@ -1,0 +1,4 @@
+# What the release apps are built from: the app's dependencies plus PyInstaller. Lock with:
+#   uv pip compile requirements-build.in --universal --python-version 3.12 -o requirements-build.txt
+-r requirements.txt
+pyinstaller

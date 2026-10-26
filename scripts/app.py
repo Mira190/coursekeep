@@ -54,7 +54,8 @@ class Job:
 
     def _read(self):
         for line in self.proc.stdout:
-            if m := re.search(r"links to process -> (.+)$", line.rstrip()):
+            # Only the engine's own header line: progress lines carry page text, which must not move the download folder.
+            if not self.out and (m := re.match(r"\d+ links to process -> (.+)$", line.rstrip())):
                 self.out = Path(m[1])
             self.lines.append(line.rstrip())
         self.proc.wait()
@@ -136,7 +137,10 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send(400, {"error": "Enter a full web address, like https://example.edu/course"})
             flags = ["--depth", "1"] if body.get("depth") else []
             flags += ["--refresh"] * bool(body.get("refresh")) + ["--all-links"] * bool(body.get("allLinks"))
-            flags += ["--max-mb", str(int(body.get("maxMb") or 100))]
+            try:
+                flags += ["--max-mb", str(max(1, int(body.get("maxMb") or 100)))]
+            except (TypeError, ValueError):
+                return self.send(400, {"error": "maxMb must be a number"})
             jid = uuid.uuid4().hex[:12]
             JOBS[jid] = Job(url, flags)
             self.send(200, {"id": jid})

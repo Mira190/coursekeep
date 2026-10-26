@@ -32,7 +32,8 @@ site, out = Path(tempfile.mkdtemp()), Path(tempfile.mkdtemp())
 </ul>
 <h2>Week 2</h2><ul><li><a href="files/big.zip">Dataset</a></li><li><a href="files/con.pdf">CON</a></li>
 <li><a href="files/lec1-mirror.pdf">Mirror of lecture 1</a></li>
-<li><a href="files/lec1.pdf?utm_source=newsletter">Lecture 1 again, with tracking</a></li></ul>
+<li><a href="files/lec1.pdf?utm_source=newsletter">Lecture 1 again, with tracking</a></li>
+<li><a href="files/setup.pdf">[Setup](evil)</a></li><li><a href="huge.html">Huge page</a></li></ul>
 </body></html>""", encoding="utf-8")
 (site / "notes.html").write_text("<html><head><title>Notes</title></head><body><article><h1>Lecture notes</h1>"
                                  + "".join(f"<p>Step {i}: gradient descent moves weight {i} against its gradient.</p>" for i in range(40))
@@ -59,6 +60,21 @@ class Handler(SimpleHTTPRequestHandler):
     def do_GET(self):
         if self.path == "/files/lec1.pdf":  # its mirror finishes first, yet the earlier link on the page must keep the file
             time.sleep(0.5)
+        if self.path == "/files/setup.pdf":  # a "PDF" link the server turns into a program
+            self.send_response(200)
+            self.send_header("Content-Type", "application/octet-stream")
+            self.send_header("Content-Disposition", 'attachment; filename="setup.exe"')
+            self.end_headers()
+            self.wfile.write(b"MZ" + b"\0" * 100)
+            return
+        if self.path == "/huge.html":  # an endless page, no Content-Length
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html")
+            self.end_headers()
+            for _ in range(400):
+                self.wfile.write(b"<p>" + b"x" * 65536 + b"</p>")
+            self.close_connection = True
+            return
         if self.path == "/files/cut.pdf":  # promises 100 kB, sends 13 bytes, hangs up
             self.send_response(200)
             self.send_header("Content-Type", "application/pdf")
@@ -101,7 +117,17 @@ assert items["Lecture video"]["status"] == "linked"
 assert items["Interactive notes"]["status"] == "failed" and "JavaScript" in items["Interactive notes"]["reason"]  # not saved as junk
 assert items["Old reading"]["status"] == "failed" and "404" in items["Old reading"]["reason"]                   # soft 404
 assert "Home" not in items and "Other course" not in items                                              # menu links
+prog = items["[Setup](evil)"]
+assert prog["status"] == "failed" and "program file (.exe)" in prog["reason"], prog                    # never saved as .exe
+assert items["Huge page"]["status"] == "failed" and "too big" in items["Huge page"]["reason"]          # endless page
 course = next(out.glob("*/"))
+assert not list(course.rglob("*.exe"))
+assert r"- \[Setup\](evil) — failed" in (course / "index.md").read_text(encoding="utf-8")      # not a clickable link
+lec1 = course / items["Lecture 1 Intro - Slides"]["path"]
+if sys.platform == "win32":                                                                          # tagged like a browser download
+    assert "ZoneId=3" in Path(f"{lec1}:Zone.Identifier").read_text(encoding="utf-8")
+elif sys.platform == "darwin":
+    assert subprocess.run(["xattr", "-p", "com.apple.quarantine", str(lec1)], capture_output=True).returncode == 0
 assert not list(course.rglob("*.part")) and not list(course.rglob("Cut file*")), "no partial files left behind"
 assert len(list(course.rglob("*.pdf"))) == 2, "lecture 1 is stored once, plus _CON.pdf"
 md = (course / "Week 1" / "articles" / "Lecture notes.md").read_text(encoding="utf-8")

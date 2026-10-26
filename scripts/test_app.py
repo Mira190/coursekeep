@@ -36,8 +36,15 @@ assert req("POST", "/api/jobs", {"url": "https://x.org"}, {"Origin": "https://ev
 assert req("POST", "/api/jobs", {"url": "https://x.org"}, {"Content-Type": "text/plain"})[0] == 415  # simple cross-site POST
 assert req("POST", "/api/jobs", {"url": "file:///etc/passwd"})[0] == 400
 assert req("POST", "/api/jobs", {"url": "not a url"})[0] == 400
+assert req("POST", "/api/jobs", {"url": "https://x.org", "maxMb": "lots"})[0] == 400
 assert req("POST", "/api/open", {"job": "j1", "rel": "../../../Windows/System32"})[0] == 400   # path traversal
 assert req("POST", "/api/open", {"job": "j1", "rel": "pdf/a.pdf"})[0] == 200
 assert opened == [(app.OUT / "course" / "pdf" / "a.pdf").resolve()]
 assert req("GET", "/api/jobs/nope/zip")[0] == 404
+
+job = app.Job.__new__(app.Job)  # progress lines carry page text; a section titled like the header line must not move the folder
+job.out, job.lines = None, []
+job.proc = SimpleNamespace(stdout=iter(["3 links to process -> /dl/Course\n", "[ok    ] links to process -> /etc / x\n"]), wait=int)
+job._read()
+assert job.out == Path("/dl/Course"), job.out
 print("ok")

@@ -120,7 +120,8 @@ Not downloaded, only listed in the index: videos (YouTube, .mp4), Drive folders,
 3. **Trust nothing the server sends.** Each file's header bytes are checked against its extension, so a login page saved as `lecture.pdf` is reported as a failure. Downloads go through a `.part` file. Page encoding is detected from the bytes (servers often declare the wrong charset, which garbles Chinese pages). 429 and 5xx responses are retried with backoff.
 4. **Windows-safe names.** Long names are shortened in the middle, so `…- Slides` and `…- Exercise` stay distinct and paths stay under 260 characters. Reserved names like `CON` or `NUL` are prefixed with `_`.
 5. **Saved means usable.** Articles are checked after extraction. A JavaScript shell ("please enable JavaScript") is re-read in the browser in a second pass, a "page not found" page served with status 200 counts as a dead link, and a download that is cut off is deleted, not kept.
-6. **A good citizen on the network.** Links on a public page may not reach into your own machine or local network: this is checked for every request and every redirect, in the browser too. `--depth` crawling follows robots.txt. Each site gets at most 4 parallel downloads. The User-Agent says `CourseKeep/1.0`.
+6. **A good citizen on the network.** Links on a public page may not reach into your own machine or local network: this is checked for every request and every redirect, in the browser too. `--depth` crawling follows robots.txt. Each site gets at most 4 parallel downloads. The User-Agent says `CourseKeep/<version>`.
+7. **Downloads are treated as untrusted.** Programs (`.exe`, `.msi`, `.bat`, `.lnk`, `.dmg`, ...) are never saved, even when a "slides.pdf" link turns out to be one. Saved files carry the same "downloaded from the internet" tag a browser adds, so Office opens them in Protected View. Linked pages over 20 MB, or that never finish, are refused. The web app listens on 127.0.0.1 only and answers only its own page.
 
 **Measured on the CS146S course:**
 - **Slide recall**: all 25 slide links a person can see on the two course pages are accounted for: 23 saved, 1 deck the owner never shared (reported), 1 on Figma (kept as a link).
@@ -141,15 +142,23 @@ Not downloaded, only listed in the index: videos (YouTube, .mp4), Drive folders,
 
 ```bash
 python scripts/test_coursekeep.py   # offline unit tests: naming, link rules, junk and soft-404 checks
-python scripts/test_integration.py  # offline end-to-end run against a fake course site: dedup, resume, robots.txt, truncation, LAN block
+python scripts/test_integration.py  # offline end-to-end run against a fake course site: dedup, resume, robots.txt, truncation, LAN block, program files, endless pages
 python scripts/test_app.py          # offline tests: web app request guards
+python scripts/smoke_app.py dist/CourseKeep/CourseKeep.exe  # a packaged app really runs (engine, web app, bundled files)
 python scripts/bench.py             # static vs browser on the benchmark sites
 python scripts/bench.py URL ...     # ...or on your own
 ```
 
-CI runs the tests and `ruff` on Windows, macOS and Linux with Python 3.9 and 3.13.
+CI runs the tests and `ruff` on Windows, macOS and Linux with Python 3.9 and 3.13, and `pip-audit` on the release dependencies. Dependabot proposes dependency and action updates monthly.
 
-Releasing: the version lives only in `__version__` at the top of `scripts/coursekeep.py` (`python scripts/coursekeep.py --version`). Bump it, add an entry to [CHANGELOG.md](CHANGELOG.md), commit, then push a matching tag (`git tag v1.0.0 && git push origin v1.0.0`). The release workflow refuses a tag that does not match `__version__`, then builds the Windows and macOS apps and attaches them to the release.
+**Releasing is automatic.** The version lives only in `__version__` at the top of `scripts/coursekeep.py`. Bump it and add a `## <version> - <date>` entry to [CHANGELOG.md](CHANGELOG.md). When that commit reaches `main`, the release workflow:
+
+1. runs the full test matrix;
+2. builds the Windows and macOS apps from the pinned `requirements-build.txt`;
+3. smoke-tests each built app;
+4. publishes release `v<version>` with the changelog entry as its notes.
+
+A missing changelog entry stops the release. To change a dependency of the app build, edit `requirements-build.in` and re-lock with the command at its top.
 
 ## Responsible use
 

@@ -1,35 +1,66 @@
 name: release
 
-# Push a tag like v1.0.0 to build the double-click apps and attach them to a GitHub Release.
+# Fully automatic: bump __version__ in scripts/coursekeep.py and add a CHANGELOG.md entry. When that reaches main,
+# this tests it, builds the Windows and macOS apps, checks they run, and publishes release v<version> with the
+# changelog entry as its notes. Pushes that don't change the version stop after the first job.
 on:
   push:
-    tags: ["v*"]
+    branches: [main]
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
 
 jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.v.outputs.tag }}
+      new: ${{ steps.v.outputs.new }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - id: v
+        run: |
+          version=$(sed -n 's/^__version__ = "\([^"]*\)".*/\1/p' scripts/coursekeep.py)
+          echo "tag=v$version" >> "$GITHUB_OUTPUT"
+          if git ls-remote --exit-code --tags origin "refs/tags/v$version" > /dev/null; then
+            echo "new=false" >> "$GITHUB_OUTPUT"
+            echo "v$version is already released"
+          else
+            grep -q "^## $version " CHANGELOG.md || { echo "::error::CHANGELOG.md has no '## $version' entry"; exit 1; }
+            echo "new=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  test:
+    needs: version
+    if: needs.version.outputs.new == 'true'
+    uses: ./.github/workflows/tests.yml
+
   build:
+    needs: [version, test]
     strategy:
       matrix:
         include:
           - os: windows-latest
             sep: ";"
             asset: CourseKeep-windows
+            exe: dist/CourseKeep/CourseKeep.exe
           - os: macos-latest
             sep: ":"
             asset: CourseKeep-macos
+            exe: dist/CourseKeep/CourseKeep
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-python@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # v7.1.0
         with:
           python-version: "3.12"
-      - run: pip install -r requirements.txt pyinstaller
-      - name: Tag matches __version__
-        if: startsWith(github.ref, 'refs/tags/')
-        run: python -c "import sys; sys.path.insert(0, 'scripts'); import coursekeep as c; sys.exit(0 if 'v' + c.__version__ == '${{ github.ref_name }}' else 'tag ${{ github.ref_name }} != v' + c.__version__)"
+      # Exact versions: a dependency released (or hijacked) today never lands in the app unreviewed.
+      - run: pip install -r requirements-build.txt
       # One folder, not one file: the app starts a copy of itself for every download, and a one-file
       # build would unpack ~180 MB each time.
       - run: >
@@ -37,8 +68,35 @@ jobs:
           --add-data "scripts/ui.html${{ matrix.sep }}." --hidden-import coursekeep
           --collect-data trafilatura --collect-data justext --collect-data courlan --collect-data htmldate
           --collect-all playwright scripts/app.py
+      - run: python -X utf8 scripts/smoke_app.py ${{ matrix.exe }}
+        env:
+          PYTHONPATH: scripts
       - run: python -c "import shutil; shutil.make_archive('${{ matrix.asset }}', 'zip', 'dist', 'CourseKeep')"
-      - uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/')
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
         with:
-          files: ${{ matrix.asset }}.zip
+          name: ${{ matrix.asset }}
+          path: ${{ matrix.asset }}.zip
+
+  publish:
+    needs: [version, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # only this job can create the tag and the release
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8.0.2
+        with:
+          merge-multiple: true
+      - name: Release notes from CHANGELOG.md
+        env:
+          TAG: ${{ needs.version.outputs.tag }}
+        run: |
+          awk -v v="## ${TAG#v} " 'index($0, v) == 1 {on = 1; next} /^## / {on = 0} on' CHANGELOG.md > notes.md
+          cat notes.md
+      - uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64  # v3.0.3
+        with:
+          tag_name: ${{ needs.version.outputs.tag }}
+          target_commitish: ${{ github.sha }}
+          name: CourseKeep ${{ needs.version.outputs.tag }}
+          body_path: notes.md
+          files: CourseKeep-*.zip

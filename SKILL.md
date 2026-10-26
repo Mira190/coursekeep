@@ -50,6 +50,8 @@ One command turns a course page or blog post into a local folder:
 - `no main text found` / `needs JavaScript`: the page stayed empty even in a browser. It is not saved as junk; offer the original link.
 - `GitHub API limit reached`: a GitHub folder without a README needs the API (60 requests an hour). Rerun later.
 - `blocked a link into your local network`: a public page linked to a private address. This is a safety block; do not work around it.
+- `program file (.exe), not downloaded`: the server sent a program (often disguised as a document link). Never download it some other way; tell the user.
+- `the page is too big or never finishes loading`: a linked page over 20 MB or endless. Offer the link.
 
 Identical files are stored once, so two links may point to the same file in the index. Reruns fetch only new items, retry failures, and resume a cancelled run.
 

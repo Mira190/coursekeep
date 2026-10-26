@@ -3,6 +3,14 @@ name: tests
 on:
   push:
   pull_request:
+  workflow_call:  # the release workflow runs these first
+
+permissions:
+  contents: read
+
+concurrency:  # a newer push to the same branch makes the older run pointless
+  group: tests-${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: true
 
 jobs:
   test:
@@ -13,13 +21,25 @@ jobs:
         python: ["3.9", "3.13"]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-python@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # v7.1.0
         with:
           python-version: ${{ matrix.python }}
+      # Unpinned on purpose: a new dependency release that breaks us shows up here before users hit it.
       # Playwright is optional and the tests never need a browser.
       - run: pip install requests beautifulsoup4 lxml "trafilatura>=2.0" ruff
       - run: ruff check scripts
       - run: python -X utf8 scripts/test_coursekeep.py
       - run: python -X utf8 scripts/test_app.py
       - run: python -X utf8 scripts/test_integration.py
+
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # v7.1.0
+        with:
+          python-version: "3.12"
+      - run: pip install pip-audit
+      # Known vulnerabilities in exactly what the release apps are built from.
+      - run: pip-audit -r requirements-build.txt --no-deps --disable-pip
