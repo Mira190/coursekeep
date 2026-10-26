@@ -1,0 +1,14 @@
+[tool.ruff]
+target-version = "py39"
+line-length = 130
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "B", "UP", "SIM", "RUF", "S"]
+ignore = [
+  "E501",                     # long lines: readable one-liners beat wrapped ones here
+  "E702", "E731", "E741",     # compact test/bench code
+  "S101",                     # assert is how the tests check things
+  "S110", "S112", "SIM105",   # deliberate best-effort steps (optional browser waits, script scanning)
+  "S603", "S606", "S607",     # subprocess with fixed argument lists, never a shell
+  "RUF001", "RUF003",         # "…" and "–" are intended characters
+]

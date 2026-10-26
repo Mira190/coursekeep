@@ -1,0 +1,25 @@
+name: tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python: ["3.9", "3.13"]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      # Playwright is optional and the tests never need a browser.
+      - run: pip install requests beautifulsoup4 lxml "trafilatura>=2.0" ruff
+      - run: ruff check scripts
+      - run: python -X utf8 scripts/test_coursekeep.py
+      - run: python -X utf8 scripts/test_app.py
+      - run: python -X utf8 scripts/test_integration.py

@@ -1,0 +1,41 @@
+name: release
+
+# Push a tag like v1.0.0 to build the double-click apps and attach them to a GitHub Release.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            sep: ";"
+            asset: CourseKeep-windows
+          - os: macos-latest
+            sep: ":"
+            asset: CourseKeep-macos
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt pyinstaller
+      # One folder, not one file: the app starts a copy of itself for every download, and a one-file
+      # build would unpack ~180 MB each time.
+      - run: >
+          pyinstaller --noconfirm --onedir --name CourseKeep --paths scripts
+          --add-data "scripts/ui.html${{ matrix.sep }}." --hidden-import coursekeep
+          --collect-data trafilatura --collect-data justext --collect-data courlan --collect-data htmldate
+          --collect-all playwright scripts/app.py
+      - run: python -c "import shutil; shutil.make_archive('${{ matrix.asset }}', 'zip', 'dist', 'CourseKeep')"
+      - uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: ${{ matrix.asset }}.zip

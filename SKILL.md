@@ -47,6 +47,11 @@ One command turns a course page or blog post into a local folder:
 - `403` / `419`: the site blocks scripts. Report it. Do not try to bypass bot protection.
 - `404` / name resolution errors: the course itself links to a dead page.
 - `too big`: rerun with a higher `--max-mb` if the user wants that file.
+- `no main text found` / `needs JavaScript`: the page stayed empty even in a browser. It is not saved as junk; offer the original link.
+- `GitHub API limit reached`: a GitHub folder without a README needs the API (60 requests an hour). Rerun later.
+- `blocked a link into your local network`: a public page linked to a private address. This is a safety block; do not work around it.
+
+Identical files are stored once, so two links may point to the same file in the index. Reruns fetch only new items, retry failures, and resume a cancelled run.
 
 Videos (YouTube, .mp4), Drive folders and Figma are listed in the index, not downloaded.
 

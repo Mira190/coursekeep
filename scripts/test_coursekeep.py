@@ -1,4 +1,4 @@
-from coursekeep import download_url, link_density, label, needs_browser, parse_links, plan, raw_urls, safe
+from coursekeep import NeedsBrowser, check_text, download_url, link_density, norm_url, readme_urls, label, needs_browser, parse_links, plan, raw_urls, safe
 
 H = "themodernsoftware.dev"
 L = lambda url, nav=False: {"url": url, "nav": nav}
@@ -62,4 +62,20 @@ acc = long.replace("<body>", '<body><div role="tab"><a aria-controls="p1">Q</a><
 assert needs_browser(*parse_links(acc, "https://c.edu/x")[1:][::-1]) == ""
 assert parse_links('<a href="s w/a b.pdf">x</a>', "https://c.edu/")[1][0]["url"] == "https://c.edu/s%20w/a%20b.pdf"
 assert link_density(long) < 0.08 < link_density(page)
+assert readme_urls("https://github.com/a/b") [0] == "https://raw.githubusercontent.com/a/b/HEAD/README.md"
+assert readme_urls("https://github.com/a/b/tree/master/week1")[0] == "https://raw.githubusercontent.com/a/b/master/week1/README.md"
+assert readme_urls("https://github.com/a/b/blob/main/x.py") == [] and readme_urls("https://gitlab.com/a/b") == []
+assert norm_url("HTTPS://Example.com:443/a/?utm_source=x&id=2") == "https://example.com/a?id=2"
+check_text("A real article. " * 60)
+for junk in (None, "", "JavaScript must be enabled in order to use Notion.", "Loading..."):
+    try:
+        check_text(junk)
+        raise AssertionError(f"junk accepted: {junk!r}")
+    except NeedsBrowser:
+        pass
+try:
+    check_text("Page not found. Sorry, the page you are looking for does not exist.")
+    raise AssertionError("soft 404 accepted")
+except RuntimeError as e:
+    assert "404" in str(e)
 print("ok")

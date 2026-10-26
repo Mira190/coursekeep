@@ -1,2 +1,3 @@
 * text=auto eol=lf
-*.bat text eol=crlf
+# Batch files keep CRLF bytes in the repo itself: cmd.exe misparses LF-only files, and ZIP/raw downloads skip git's conversion.
+*.bat -text

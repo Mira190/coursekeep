@@ -1,0 +1,739 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CourseKeep</title>
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230e7a63'/%3E%3Cpath d='M11 8h10a1 1 0 0 1 1 1v15l-6-4-6 4V9a1 1 0 0 1 1-1z' fill='white'/%3E%3C/svg%3E">
+<style>
+:root {
+  --bg: #f7f6f2; --surface: #ffffff; --surface-2: #f2f0ea; --ink: #1b1a17; --ink-2: #57554e; --ink-3: #6b685f;
+  --line: #e5e2d9; --accent: #0e7a63; --accent-hover: #0b6653; --accent-ink: #ffffff; --accent-soft: #e2f1eb;
+  --ok: #1d7f4a; --warn: #9a5b00; --warn-soft: #fbf0db; --bad: #b3401a; --bad-soft: #fbe7df;
+  --shadow: 0 1px 2px rgba(27, 26, 23, .05), 0 10px 30px rgba(27, 26, 23, .07);
+  --radius: 16px; --radius-sm: 10px;
+  --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #111210; --surface: #1a1b19; --surface-2: #222320; --ink: #ecebe6; --ink-2: #b4b1a8; --ink-3: #9a978e;
+    --line: #2e2f2b; --accent: #3cc39b; --accent-hover: #5fd3b0; --accent-ink: #062a20; --accent-soft: #15332a;
+    --ok: #55c98a; --warn: #e6a742; --warn-soft: #36290f; --bad: #f08d63; --bad-soft: #3a2018;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .3);
+  }
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.5 var(--font); -webkit-font-smoothing: antialiased; }
+button, input, select { font: inherit; color: inherit; }
+a { color: var(--accent); }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+[hidden] { display: none !important; }
+
+.wrap { max-width: 780px; margin: 0 auto; padding: 0 20px; }
+.top { display: flex; align-items: center; gap: 8px; padding: 20px 0; }
+.brand { display: inline-flex; align-items: center; gap: 10px; margin-right: auto; font-weight: 650; letter-spacing: -.01em; color: var(--ink); text-decoration: none; font-size: 17px; }
+.brand svg { width: 28px; height: 28px; }
+.dest, .lang { display: inline-flex; align-items: center; gap: 6px; color: var(--ink-3); font-size: 13px; background: none; border: 0; padding: 6px 8px; border-radius: 8px; cursor: pointer; }
+.dest { min-width: 0; max-width: 50%; }
+.dest:hover, .lang:hover { color: var(--ink); background: var(--surface-2); }
+.dest span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dest svg { flex: none; width: 15px; height: 15px; }
+.lang { border: 1px solid var(--line); font-weight: 600; }
+
+/* Home */
+.hero { padding: 64px 0 28px; }
+h1 { font-size: clamp(34px, 6vw, 52px); line-height: 1.05; letter-spacing: -.035em; margin: 0 0 14px; font-weight: 700; }
+.lede { font-size: 18px; color: var(--ink-2); margin: 0 0 32px; max-width: 34em; }
+.search { position: relative; display: flex; align-items: center; background: var(--surface); border: 1.5px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 6px; transition: border-color .15s, box-shadow .15s; }
+.search:focus-within { border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft), var(--shadow); }
+.search.invalid { border-color: var(--bad); box-shadow: 0 0 0 4px var(--bad-soft); }
+.search > svg { flex: none; width: 20px; height: 20px; margin: 0 4px 0 12px; color: var(--ink-3); }
+.search input { flex: 1; min-width: 0; border: 0; background: transparent; padding: 14px 10px; font-size: 17px; outline: none; }
+.search input::placeholder { color: var(--ink-3); }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 1px solid transparent; border-radius: 11px; padding: 11px 18px; font-weight: 600; cursor: pointer; text-decoration: none; white-space: nowrap; transition: background .15s, border-color .15s, color .15s, transform .05s; }
+.btn:active { transform: translateY(1px); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); }
+.btn.primary:hover { background: var(--accent-hover); }
+.btn.primary:disabled { opacity: .6; cursor: progress; }
+.btn.secondary { background: var(--surface); border-color: var(--line); color: var(--ink); }
+.btn.secondary:hover { border-color: var(--ink-3); }
+.btn.ghost { background: transparent; color: var(--ink-2); padding: 7px 10px; }
+.btn.ghost:hover { background: var(--surface-2); color: var(--ink); }
+.btn.small { padding: 6px 11px; font-size: 14px; border-radius: 9px; }
+.btn svg { width: 17px; height: 17px; }
+kbd { font: 12px/1 var(--font); padding: 2px 5px; border-radius: 6px; border: 1px solid currentColor; }  /* outline keeps the button's own text contrast */
+.field-error { color: var(--bad); font-size: 14px; margin: 10px 4px 0; }
+.examples { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 18px 2px 0; color: var(--ink-3); font-size: 14px; }
+.chip { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 6px 12px; font-size: 14px; color: var(--ink-2); cursor: pointer; }
+.chip:hover { border-color: var(--accent); color: var(--accent); }
+
+.options { margin-top: 26px; border-top: 1px solid var(--line); padding-top: 6px; }
+.options summary { cursor: pointer; list-style: none; display: inline-flex; align-items: center; gap: 6px; padding: 8px 2px; color: var(--ink-2); font-size: 15px; font-weight: 550; }
+.options summary::-webkit-details-marker { display: none; }
+.options summary svg { width: 16px; height: 16px; transition: transform .15s; }
+.options[open] summary svg { transform: rotate(90deg); }
+.opt-grid { display: grid; gap: 4px; padding: 6px 0 4px; }
+.toggle { display: flex; gap: 14px; align-items: flex-start; padding: 12px; border-radius: 12px; cursor: pointer; }
+.toggle:hover { background: var(--surface-2); }
+.toggle input { appearance: none; flex: none; width: 38px; height: 22px; margin: 2px 0 0; border-radius: 999px; background: var(--line); position: relative; cursor: pointer; transition: background .15s; }
+.toggle input::after { content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, .25); transition: transform .15s; }
+.toggle input:checked { background: var(--accent); }
+.toggle input:checked::after { transform: translateX(16px); }
+.toggle b { display: block; font-weight: 600; font-size: 15px; }
+.toggle small { color: var(--ink-3); font-size: 14px; }
+.toggle select { margin-left: auto; padding: 6px 10px; border-radius: 9px; border: 1px solid var(--line); background: var(--surface); }
+
+.recent { margin: 44px 0 64px; }
+h2.label { font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--ink-3); font-weight: 600; margin: 0 0 10px; }
+.list { list-style: none; margin: 0; padding: 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+.recent li { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-top: 1px solid var(--line); }
+.recent li:first-child { border-top: 0; }
+.recent .rt { flex: 1; min-width: 0; }
+.recent .rt b { display: block; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.recent .rt span { color: var(--ink-3); font-size: 13px; }
+
+/* Run */
+.run { padding: 28px 0 80px; }
+.back { margin: 0 0 14px -10px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 22px; }
+.status { display: flex; gap: 16px; align-items: flex-start; }
+.status-icon { flex: none; width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent); }
+.status-icon svg { width: 22px; height: 22px; }
+.status-icon.error { background: var(--bad-soft); color: var(--bad); }
+.spinner { width: 20px; height: 20px; border: 2.5px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.status-text { min-width: 0; flex: 1; }
+.status-text h1 { margin: 0; font-size: 21px; line-height: 1.3; letter-spacing: -.015em; overflow-wrap: anywhere; }
+.status-text h1:focus { outline: none; }
+.status-text p { margin: 4px 0 0; color: var(--ink-2); font-size: 15px; overflow-wrap: anywhere; }
+.bar { height: 8px; border-radius: 999px; background: var(--surface-2); overflow: hidden; margin: 20px 0 10px; }
+.bar span { display: block; height: 100%; width: 0; background: var(--accent); border-radius: inherit; transition: width .3s ease; }
+.bar.indeterminate span { width: 30%; animation: slide 1.2s ease-in-out infinite; }
+@keyframes slide { from { transform: translateX(-100%); } to { transform: translateX(340%); } }
+.bar-meta { display: flex; justify-content: space-between; align-items: center; gap: 12px; color: var(--ink-3); font-size: 14px; font-variant-numeric: tabular-nums; }
+.hint { display: flex; gap: 10px; margin: 16px 0 0; padding: 12px 14px; border-radius: 12px; background: var(--surface-2); color: var(--ink-2); font-size: 14px; }
+.hint svg { flex: none; width: 18px; height: 18px; margin-top: 1px; color: var(--accent); }
+.hint span { flex: 1; }
+.hint.warn { background: var(--warn-soft); }
+.hint.warn svg { color: var(--warn); }
+.hint .btn { margin: -4px -6px -4px 0; align-self: center; }
+
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 20px 0 0; }
+.stat { background: var(--surface-2); border-radius: 12px; padding: 12px 14px; }
+.stat b { display: block; font-size: 26px; line-height: 1.1; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.stat span { color: var(--ink-2); font-size: 13px; }
+.stat.bad b { color: var(--bad); }
+.actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
+
+.filters { position: sticky; top: 0; z-index: 2; display: flex; flex-wrap: wrap; gap: 6px; padding: 14px 0 12px; margin-top: 18px; background: var(--bg); }
+.filters button { flex: none; border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 6px 12px; font-size: 14px; color: var(--ink-2); cursor: pointer; }
+.filters button[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+.filters button .n { color: var(--ink-3); margin-left: 4px; font-variant-numeric: tabular-nums; }
+.filters button[aria-pressed="true"] .n { color: inherit; }
+
+.sec { margin-top: 12px; }
+.sec > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 8px; padding: 10px 4px; font-weight: 600; font-size: 15px; }
+.sec > summary::-webkit-details-marker { display: none; }
+.sec > summary svg { flex: none; width: 15px; height: 15px; color: var(--ink-3); transition: transform .15s; }
+.sec[open] > summary svg { transform: rotate(90deg); }
+.sec > summary .count { margin-left: auto; color: var(--ink-3); font-weight: 500; font-size: 13px; font-variant-numeric: tabular-nums; }
+.row { display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-top: 1px solid var(--line); }
+.row:first-child { border-top: 0; }
+.row.fresh { animation: fade .4s ease; }
+@keyframes fade { from { background: var(--accent-soft); } }
+.kicon { flex: none; width: 34px; height: 34px; border-radius: 9px; display: grid; place-items: center; background: var(--surface-2); color: var(--ink-2); }
+.kicon svg { width: 18px; height: 18px; }
+.k-slides { background: #fdebd9; color: #b45309; } .k-pdf { background: #fde3e1; color: #b42318; }
+.k-docs { background: #e1ecfd; color: #1d4ed8; } .k-articles { background: var(--accent-soft); color: var(--accent); }
+.k-failed { background: var(--bad-soft); color: var(--bad); }
+@media (prefers-color-scheme: dark) {
+  .k-slides { background: #3a2715; color: #f5a55a; } .k-pdf { background: #3d1d1b; color: #f38b7f; } .k-docs { background: #18263f; color: #8db3ff; }
+}
+.rmain { flex: 1; min-width: 0; }
+.rname { font-weight: 550; overflow-wrap: anywhere; }
+.rmeta { color: var(--ink-3); font-size: 13.5px; margin-top: 1px; }
+.row.failed .rmeta b { color: var(--bad); font-weight: 600; }
+.badge { display: inline-block; font-size: 11.5px; font-weight: 700; letter-spacing: .02em; color: var(--accent); background: var(--accent-soft); padding: 1px 7px; border-radius: 999px; margin-left: 6px; vertical-align: 1px; }
+.ract { display: flex; gap: 4px; flex: none; }
+.icon-btn { display: inline-grid; place-items: center; width: 34px; height: 34px; border-radius: 9px; color: var(--ink-3); background: none; border: 0; cursor: pointer; }
+.icon-btn:hover { background: var(--surface-2); color: var(--ink); }
+.icon-btn svg { width: 17px; height: 17px; }
+.empty { text-align: center; color: var(--ink-3); padding: 28px; }
+.toast { position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 20px); opacity: 0; background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 10px; font-size: 14px; transition: .2s; pointer-events: none; z-index: 10; }
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+@media (max-width: 600px) {
+  .hero { padding-top: 32px; }
+  .lede { font-size: 16px; }
+  .search { flex-wrap: wrap; }
+  .search input { padding: 12px 8px; }
+  .search .btn { width: 100%; }
+  .search kbd, .dest span { display: none; }
+  .stats { grid-template-columns: repeat(2, 1fr); }
+  .actions .btn { flex: 1; }
+  .card { padding: 18px; }
+}
+@media (prefers-reduced-motion: reduce) { *, *::after { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <a class="brand" href="/" id="home-link">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="var(--accent)"/><path d="M11 8h10a1 1 0 0 1 1 1v15l-6-4-6 4V9a1 1 0 0 1 1-1z" fill="var(--accent-ink)"/></svg>
+      CourseKeep
+    </a>
+    <button class="dest" id="dest" type="button" hidden>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+      <span id="dest-path"></span>
+    </button>
+    <button class="lang" id="lang" type="button"></button>
+  </header>
+
+  <main id="home">
+    <section class="hero">
+      <h1 data-i18n="h1"></h1>
+      <p class="lede" data-i18n="lede"></p>
+      <form class="search" id="form" novalidate>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+        <label for="url" class="sr-only" data-i18n="urlLabel"></label>
+        <input id="url" type="url" inputmode="url" placeholder="https://course-website.edu/syllabus" autocomplete="url" spellcheck="false" aria-describedby="url-error" autofocus>
+        <button class="btn primary" type="submit" id="go"><span data-i18n="go"></span> <kbd aria-hidden="true">Enter</kbd></button>
+      </form>
+      <p class="field-error" id="url-error" role="alert" hidden></p>
+      <div class="examples">
+        <span data-i18n="try"></span>
+        <button class="chip" type="button" data-url="https://themodernsoftware.dev/fall2025">Stanford CS146S</button>
+        <button class="chip" type="button" data-url="https://cs231n.github.io/" data-i18n="ex2"></button>
+        <button class="chip" type="button" data-url="https://lilianweng.github.io/posts/2023-06-23-agent/" data-i18n="ex3"></button>
+      </div>
+
+      <details class="options" id="options">
+        <summary><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg><span data-i18n="options"></span></summary>
+        <div class="opt-grid">
+          <label class="toggle"><input type="checkbox" id="opt-depth"><span><b data-i18n="optDepth"></b><small data-i18n="optDepthD"></small></span></label>
+          <label class="toggle"><input type="checkbox" id="opt-refresh"><span><b data-i18n="optRefresh"></b><small data-i18n="optRefreshD"></small></span></label>
+          <label class="toggle"><input type="checkbox" id="opt-all"><span><b data-i18n="optAll"></b><small data-i18n="optAllD"></small></span></label>
+          <div class="toggle" style="cursor:default"><span><b data-i18n="optMax"></b><small data-i18n="optMaxD"></small></span>
+            <label class="sr-only" for="opt-max" data-i18n="optMax"></label>
+            <select id="opt-max"><option value="100">100 MB</option><option value="500">500 MB</option><option value="2000">2 GB</option></select>
+          </div>
+        </div>
+      </details>
+    </section>
+
+    <section class="recent" id="recent" hidden>
+      <h2 class="label" data-i18n="recent"></h2>
+      <ul class="list" id="recent-list"></ul>
+    </section>
+  </main>
+
+  <main id="run" class="run" hidden>
+    <button class="btn ghost back" type="button" id="back">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg><span data-i18n="back"></span>
+    </button>
+    <section class="card" aria-live="polite">
+      <div class="status">
+        <div class="status-icon" id="status-icon"><div class="spinner"></div></div>
+        <div class="status-text">
+          <h1 id="run-title" tabindex="-1"></h1>
+          <p id="run-sub"></p>
+        </div>
+      </div>
+      <div id="progress">
+        <div class="bar indeterminate" id="bar" role="progressbar" data-i18n-aria="progress" aria-valuemin="0" aria-valuemax="100"><span></span></div>
+        <div class="bar-meta"><span id="run-count"></span><button class="btn ghost small" type="button" id="cancel" data-i18n="cancel"></button></div>
+      </div>
+      <div id="done" hidden>
+        <div class="stats" id="stats"></div>
+        <div class="actions">
+          <button class="btn primary" type="button" id="open-folder">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><span data-i18n="openFolder"></span>
+          </button>
+          <a class="btn secondary" id="zip" href="#" download>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0-4-4m4 4 4-4M5 21h14"/></svg><span data-i18n="zip"></span>
+          </a>
+          <button class="btn ghost" type="button" id="again" data-i18n="again"></button>
+        </div>
+      </div>
+      <p class="hint" id="run-hint" hidden></p>
+    </section>
+    <nav class="filters" id="filters" data-i18n-aria="filterBy" hidden></nav>
+    <div id="feed"></div>
+  </main>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+"use strict";
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+const safeHref = (u) => (/^https?:\/\//i.test(u) ? u : "#");
+const svg = (d, w = 2) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+const ICON = {
+  slides: svg('<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M12 16v4M8 20h8"/>'),
+  pdf: svg('<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/>'),
+  docs: svg('<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/>'),
+  articles: svg('<path d="M4 6h16M4 10h16M4 14h10M4 18h7"/>'),
+  files: svg('<path d="m8 9-4 3 4 3M16 9l4 3-4 3M13.5 6l-3 12"/>'),
+  archives: svg('<rect x="3" y="4" width="18" height="5" rx="1"/><path d="M5 9v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9M10 13h4"/>'),
+  media: svg('<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m10 9 5 3-5 3z"/>'),
+  link: svg('<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>'),
+  video: svg('<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m10 9 5 3-5 3z"/>'),
+  failed: svg('<circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/>'),
+  pending: svg('<circle cx="12" cy="12" r="9"/><path d="m8.5 12 2.5 2.5 4.5-5"/>'),
+  check: svg('<path d="m5 12 5 5L20 7"/>', 2.5),
+  alert: svg('<path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/>'),
+  open: svg('<path d="M14 3h7v7M10 14 21 3M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"/>'),
+  folder: svg('<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>'),
+  info: svg('<circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/>'),
+  chevron: svg('<path d="m9 6 6 6-6 6"/>', 2.2),
+  close: svg('<path d="M18 6 6 18M6 6l12 12"/>'),
+  refresh: svg('<path d="M21 12a9 9 0 1 1-2.6-6.4L21 8M21 3v5h-5"/>'),
+};
+
+/* ---------- words (English / 中文) ---------- */
+const s_ = (n) => (n === 1 ? "" : "s");
+const STR = {
+  en: {
+    langName: "中文", langAria: "切换到中文", h1: "Keep every course.",
+    lede: "Paste a course page or a blog post. Get every slide, PDF and reading, sorted by week, saved on your computer.",
+    urlLabel: "Course or blog post web address", go: "Keep it", try: "Try", ex2: "CS231n notes", ex3: "A blog post", options: "Options",
+    optDepth: "Include sub-pages", optDepthD: "For courses that put each lecture's files on its own page, like MIT OpenCourseWare.",
+    optRefresh: "Download everything again", optRefreshD: "Use when slides were updated after class. Normally only new items are fetched.",
+    optAll: "Save the pages a blog post cites", optAllD: "By default a post keeps its own text and the files it links to.",
+    optMax: "Skip files larger than", optMaxD: "Protects you from multi-gigabyte videos and archives.",
+    recent: "Recent", checkNew: "Check for new", checkNewTitle: "Download what's new since last time", forget: "Remove {t} from recent",
+    recentMeta: (v) => `${v.host} · ${v.ago} · ${v.saved} saved${v.failed ? `, ${v.failed} need attention` : ""}`,
+    justNow: "just now", minAgo: "{n} min ago", hAgo: "{n} h ago", yesterday: "yesterday", daysAgo: "{n} days ago",
+    back: "New download", reading: "Reading the page…", readingTitle: "Reading… · CourseKeep", looking: "Looking for slides, PDFs and readings",
+    progress: "Download progress", cancel: "Cancel", stopping: "Stopping…", subpages: "Reading sub-pages… {n} so far",
+    hintBrowser: "This page builds its content with JavaScript, so CourseKeep opened it in a hidden browser to see everything.",
+    hintNoBrowser: "This page needs a browser, but none was found. CourseKeep pulled the slide and PDF links from the page's code instead; install Chrome or Edge to get everything.",
+    hintArticle: "This looks like a blog post, so CourseKeep is saving its text and the files it links to. Turn on “Save the pages a blog post cites” in Options to get those too.",
+    found: (v) => `Found ${v.n} item${s_(v.n)} on ${v.host}`, nothing: "Nothing to download on this page", count: "{c} of {t}",
+    openFolder: "Open folder", zip: "Download .zip", again: "Keep another",
+    stSaved: "Saved", stNew: "New this time", stLinks: "Links & videos", stIssues: "Need attention",
+    hStopped: "Stopped early", hNothing: "Nothing to keep on this page", hKept: (v) => `Kept ${v.n} item${s_(v.n)}`,
+    hKeptNew: (v) => `Kept ${v.n} new item${s_(v.n)}`, hUpToDate: "Already up to date", inTotal: "{title} · {n} items in total",
+    failHint: (v) => `${v.n} item${s_(v.n)} couldn't be downloaded. Each one says why.`, showThem: "Show them",
+    dupNote: (v) => `Removed ${v.n} duplicate file${s_(v.n)} (identical content was already saved).`,
+    cancelled: "Download cancelled", cancelledD: "Files saved so far are in your CourseKeep folder. “Check for new” continues where it stopped.",
+    cantOpen: "Couldn't open that page", lost: "Lost connection to CourseKeep",
+    lostD: "Is the CourseKeep window still open? Start it again and press “Check for new” to continue.",
+    notRunning: "CourseKeep isn't running. Start it again with coursekeep.bat or `python scripts/app.py`.",
+    emptyUrl: "Paste the address of a course page or blog post first.",
+    badUrl: "That doesn't look like a web address. Try something like https://cs231n.github.io/",
+    stillRunning: "Still downloading. Press Cancel first, or wait until it finishes.", opened: "Opened in your file manager",
+    fAll: "All", fIssues: "Needs attention", fSlides: "Slides", fPdf: "PDFs", fDocs: "Docs", fArticles: "Articles", fOther: "Other files", fLinks: "Links",
+    filterBy: "Filter by type",
+    kslides: "Slides", kpdf: "PDF", kdocs: "Document", karticles: "Article", kfiles: "File", karchives: "Archive", kmedia: "Media", klink: "Link",
+    mVideo: "Video · link kept in the index", mLink: "Link kept in the index", mExists: "Already saved", mSaved: "Saved",
+    mAlready: " · already saved", mSame: " · same file as another link", badgeNew: "NEW",
+    open: "Open", openAria: "Open {name}", original: "Open the original", originalAria: "Open the original of {name}",
+    secOther: "Other", secCode: "Found in the page's code", empty: "Nothing here.", destTitle: "Files are saved to {p}. Click to open.",
+    r: {
+      private: ["Not shared publicly", "The owner hasn't made this file public. Open the original while signed in."],
+      quota: ["Google is limiting downloads of this file", "Too many people downloaded it recently. Try again in a few hours."],
+      signin: ["Needs sign-in", "Open the original in your browser while signed in."],
+      blocked: ["The site blocks automated downloads", "Open the original in your browser to save it."],
+      dead: ["Dead link", "The course page points to something that no longer exists."],
+      unreachable: ["Website unreachable", "The site is down or no longer exists."],
+      server: ["The site had a server error", "Try again later."],
+      big: ["Larger than your size limit", "Raise “Skip files larger than” in Options and run again."],
+      fake: ["Not a real file", "The server sent a different page instead of the file."],
+      notext: ["No readable text", "This page has nothing to save as an article."],
+      slow: ["Took too long", "The site was too slow to answer. Try again later."],
+      cut: ["Download was interrupted", "The connection dropped. Press “Check for new” to try again."],
+      lan: ["Blocked for your safety", "This link points into your own network, which a public course page shouldn't do."],
+      other: ["Couldn't download", ""],
+    },
+  },
+  zh: {
+    langName: "English", langAria: "Switch to English", h1: "把每一门课都留下来。",
+    lede: "粘贴课程主页或博客文章的链接，所有课件、PDF 和阅读材料会按周整理好，保存到你的电脑。",
+    urlLabel: "课程或博客文章网址", go: "开始保存", try: "试试", ex2: "CS231n 笔记", ex3: "一篇博客", options: "选项",
+    optDepth: "包含子页面", optDepthD: "适用于每节课的资料放在单独页面的课程，比如 MIT OpenCourseWare。",
+    optRefresh: "全部重新下载", optRefreshD: "课后课件有更新时使用。默认只下载新增的内容。",
+    optAll: "同时保存博客引用的网页", optAllD: "默认只保存文章正文和文中链接的文件。",
+    optMax: "跳过大于此大小的文件", optMaxD: "避免误下几个 GB 的视频和压缩包。",
+    recent: "最近", checkNew: "检查更新", checkNewTitle: "只下载上次之后新增的内容", forget: "从最近列表移除 {t}",
+    recentMeta: (v) => `${v.host} · ${v.ago} · 已保存 ${v.saved} 项${v.failed ? `，${v.failed} 项需处理` : ""}`,
+    justNow: "刚刚", minAgo: "{n} 分钟前", hAgo: "{n} 小时前", yesterday: "昨天", daysAgo: "{n} 天前",
+    back: "新下载", reading: "正在读取页面…", readingTitle: "正在读取… · CourseKeep", looking: "正在查找课件、PDF 和阅读材料",
+    progress: "下载进度", cancel: "取消", stopping: "正在停止…", subpages: "正在读取子页面…已读 {n} 个",
+    hintBrowser: "这个页面用 JavaScript 生成内容，CourseKeep 在后台用浏览器打开它，确保不漏掉任何内容。",
+    hintNoBrowser: "这个页面需要浏览器才能完整读取，但没有找到浏览器。CourseKeep 已从页面代码中提取课件和 PDF 链接；安装 Chrome 或 Edge 可获取全部内容。",
+    hintArticle: "这看起来是一篇博客文章，CourseKeep 会保存正文和文中链接的文件。如需同时保存它引用的网页，请在“选项”中开启“同时保存博客引用的网页”。",
+    found: (v) => `在 ${v.host} 上找到 ${v.n} 项`, nothing: "这个页面没有可下载的内容", count: "{c} / {t}",
+    openFolder: "打开文件夹", zip: "下载 .zip", again: "保存另一个",
+    stSaved: "已保存", stNew: "本次新增", stLinks: "链接和视频", stIssues: "需处理",
+    hStopped: "已提前停止", hNothing: "这个页面没有可保存的内容", hKept: (v) => `已保存 ${v.n} 项`,
+    hKeptNew: (v) => `新保存 ${v.n} 项`, hUpToDate: "已是最新", inTotal: "{title} · 共 {n} 项",
+    failHint: (v) => `有 ${v.n} 项无法下载，每项都写明了原因。`, showThem: "查看",
+    dupNote: (v) => `已删除 ${v.n} 个重复文件（相同内容已保存过）。`,
+    cancelled: "已取消下载", cancelledD: "已下载的文件在 CourseKeep 文件夹中。点“检查更新”可从中断处继续。",
+    cantOpen: "无法打开这个页面", lost: "与 CourseKeep 的连接已断开",
+    lostD: "CourseKeep 窗口还开着吗？重新启动后点“检查更新”即可继续。",
+    notRunning: "CourseKeep 没有在运行。请重新打开 coursekeep.bat，或运行 python scripts/app.py。",
+    emptyUrl: "请先粘贴课程主页或博客文章的网址。",
+    badUrl: "这看起来不是网址。试试类似 https://cs231n.github.io/ 的地址。",
+    stillRunning: "仍在下载中。请先点“取消”，或等待完成。", opened: "已在文件管理器中打开",
+    fAll: "全部", fIssues: "需处理", fSlides: "课件", fPdf: "PDF", fDocs: "文档", fArticles: "文章", fOther: "其他文件", fLinks: "链接",
+    filterBy: "按类型筛选",
+    kslides: "课件", kpdf: "PDF", kdocs: "文档", karticles: "文章", kfiles: "文件", karchives: "压缩包", kmedia: "媒体", klink: "链接",
+    mVideo: "视频 · 链接已记录在索引中", mLink: "链接已记录在索引中", mExists: "已保存过", mSaved: "已保存",
+    mAlready: " · 已保存过", mSame: " · 与另一个链接是同一文件", badgeNew: "新",
+    open: "打开", openAria: "打开 {name}", original: "打开原始链接", originalAria: "打开 {name} 的原始链接",
+    secOther: "其他", secCode: "从页面代码中找到", empty: "这里没有内容。", destTitle: "文件保存在 {p}，点击打开。",
+    r: {
+      private: ["未公开分享", "文件所有者没有公开这个文件。请登录后打开原始链接。"],
+      quota: ["Google 暂时限制了这个文件的下载", "最近下载的人太多，请几小时后再试。"],
+      signin: ["需要登录", "请在浏览器中登录后打开原始链接。"],
+      blocked: ["网站禁止自动下载", "请在浏览器中打开原始链接手动保存。"],
+      dead: ["链接已失效", "课程页面指向的内容已不存在。"],
+      unreachable: ["网站无法访问", "网站已关闭或不存在。"],
+      server: ["网站服务器出错", "请稍后再试。"],
+      big: ["超过大小限制", "在“选项”中调大“跳过大于此大小的文件”后重试。"],
+      fake: ["不是真正的文件", "服务器返回的是网页而不是文件。"],
+      notext: ["没有可读的正文", "这个页面没有可保存为文章的内容。"],
+      slow: ["下载超时", "网站响应太慢，请稍后再试。"],
+      cut: ["下载中断", "连接中途断开。点“检查更新”即可重试。"],
+      lan: ["已出于安全原因拦截", "这个链接指向你的本地网络，公开的课程页面不应如此。"],
+      other: ["无法下载", ""],
+    },
+  },
+};
+const store = (key, fallback) => ({
+  get() { try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; } },
+  set(v) { try { localStorage.setItem(key, JSON.stringify(v)); } catch {} },
+});
+const recentStore = store("coursekeep.recent", []);
+const langStore = store("coursekeep.lang", null);
+let lang = langStore.get() || (/^zh\b/i.test(navigator.language || "") ? "zh" : "en");
+function t(key, v = {}) {
+  const s = STR[lang][key] ?? STR.en[key] ?? key;
+  return typeof s === "function" ? s(v) : s.replace(/\{(\w+)\}/g, (_, k) => v[k] ?? "");
+}
+function applyLang() {
+  document.documentElement.lang = lang === "zh" ? "zh-CN" : "en";
+  document.querySelectorAll("[data-i18n]").forEach((el) => (el.textContent = t(el.dataset.i18n)));
+  document.querySelectorAll("[data-i18n-aria]").forEach((el) => el.setAttribute("aria-label", t(el.dataset.i18nAria)));
+  $("#lang").textContent = t("langName");
+  $("#lang").setAttribute("aria-label", t("langAria"));
+  if (config.out) $("#dest").title = t("destTitle", { p: config.out });
+}
+const KIND_KEYS = ["slides", "pdf", "docs", "articles", "files", "archives", "media", "link"];
+const FILTERS = [
+  ["all", "fAll", () => true], ["issues", "fIssues", (i) => i.status === "failed"],
+  ["slides", "fSlides", (i) => i.kind === "slides"], ["pdf", "fPdf", (i) => i.kind === "pdf"],
+  ["docs", "fDocs", (i) => i.kind === "docs"], ["articles", "fArticles", (i) => i.kind === "articles"],
+  ["other", "fOther", (i) => ["files", "archives", "media"].includes(i.kind)], ["link", "fLinks", (i) => i.status === "linked"],
+];
+let state = null;
+let config = { out: "" };
+
+/* ---------- helpers ---------- */
+function toast(msg) {
+  const el = $("#toast"); el.textContent = msg; el.classList.add("show");
+  clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove("show"), 2800);
+}
+async function api(path, body) {
+  const r = await fetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body || {}) });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(data.error || `Request failed (${r.status})`);
+  return data;
+}
+function normalizeUrl(raw) {
+  let s = raw.trim();
+  const found = s.match(/https?:\/\/[^\s"'<>，。、）)]+/i);   // pasted a whole sentence (any language)? take the link out of it
+  if (found) s = found[0];
+  else if (/^[\w-]+(\.[\w-]+)+(\/\S*)?$/.test(s)) s = "https://" + s;  // "cs231n.github.io" -> https://
+  try { const u = new URL(s); return /^https?:$/.test(u.protocol) && u.hostname.includes(".") ? u.href : null; } catch { return null; }
+}
+const host = (u) => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch { return u; } };
+function ago(ts) {
+  const m = Math.round((Date.now() - ts) / 60000);
+  if (m < 1) return t("justNow"); if (m < 60) return t("minAgo", { n: m });
+  const h = Math.round(m / 60); if (h < 24) return t("hAgo", { n: h });
+  const d = Math.round(h / 24); return d === 1 ? t("yesterday") : t("daysAgo", { n: d });
+}
+function humanize(reason) {
+  const r = reason || "";
+  const key = /quota|too many users/i.test(r) ? "quota"
+    : /web page instead of the file/.test(r) ? "private"
+    : /local network/.test(r) ? "lan"
+    : /\b401\b/.test(r) ? "signin"
+    : /\b(403|419|429)\b/.test(r) ? "blocked"
+    : /\b404\b/.test(r) ? "dead"
+    : /NameResolution|getaddrinfo|resolve/i.test(r) ? "unreachable"
+    : /too many 5\d\d|\b5\d\d\b/.test(r) ? "server"
+    : /too big/.test(r) ? "big"
+    : /not a \./.test(r) ? "fake"
+    : /no main text/.test(r) ? "notext"
+    : /cut off|IncompleteRead|ChunkedEncoding|Connection broken/i.test(r) ? "cut"
+    : /timed? ?out|longer than/i.test(r) ? "slow"
+    : "other";
+  const [title, detail] = STR[lang].r[key];
+  return [title, key === "other" ? r : detail];
+}
+const isVideo = (u) => /youtube\.com|youtu\.be|vimeo\.com|bilibili\.com|\.(mp4|mov|webm|m4a|mp3)(\?|$)/i.test(u);
+
+/* ---------- home ---------- */
+function renderRecent() {
+  const list = recentStore.get();
+  $("#recent").hidden = !list.length;
+  $("#recent-list").innerHTML = list.map((r, i) => `
+    <li>
+      <span class="kicon" aria-hidden="true">${ICON.folder}</span>
+      <div class="rt"><b>${esc(r.title || host(r.url))}</b><span>${esc(t("recentMeta", { host: host(r.url), ago: ago(r.at), saved: r.saved, failed: r.failed }))}</span></div>
+      <button class="btn secondary small" type="button" data-rerun="${i}" title="${esc(t("checkNewTitle"))}">${ICON.refresh}${esc(t("checkNew"))}</button>
+      <button class="icon-btn" type="button" data-forget="${i}" aria-label="${esc(t("forget", { t: r.title || r.url }))}">${ICON.close}</button>
+    </li>`).join("");
+}
+function showError(msg) {
+  $("#url-error").textContent = msg; $("#url-error").hidden = !msg;
+  $("#form").classList.toggle("invalid", !!msg);
+  $("#url").setAttribute("aria-invalid", msg ? "true" : "false");
+}
+$("#url").addEventListener("input", () => showError(""));
+$("#form").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const url = normalizeUrl($("#url").value);
+  if (!$("#url").value.trim()) return showError(t("emptyUrl"));
+  if (!url) return showError(t("badUrl"));
+  $("#url").value = url;
+  start(url);
+});
+document.querySelectorAll(".chip").forEach((c) => c.addEventListener("click", () => { $("#url").value = c.dataset.url; showError(""); $("#url").focus(); }));
+$("#recent-list").addEventListener("click", (e) => {
+  const list = recentStore.get();
+  const b = e.target.closest("button"); if (!b) return;
+  if (b.dataset.rerun) { $("#url").value = list[b.dataset.rerun].url; start(list[b.dataset.rerun].url); }
+  if (b.dataset.forget) { list.splice(b.dataset.forget, 1); recentStore.set(list); renderRecent(); }
+});
+$("#lang").addEventListener("click", () => {
+  lang = lang === "zh" ? "en" : "zh"; langStore.set(lang); applyLang(); renderRecent();
+  if (state) { state.finished && state.report ? onDone(state.done) : renderFeed(); }
+});
+
+/* ---------- run ---------- */
+function show(view) {
+  $("#home").hidden = view !== "home"; $("#run").hidden = view !== "run";
+  window.scrollTo(0, 0);
+}
+async function start(url) {
+  const go = $("#go"); go.disabled = true;
+  try {
+    const opts = { url, depth: $("#opt-depth").checked, refresh: $("#opt-refresh").checked, allLinks: $("#opt-all").checked, maxMb: +$("#opt-max").value };
+    const { id } = await api("/api/jobs", opts);
+    state = { id, url, total: 0, count: 0, pages: 0, items: new Map(), report: null, filter: "all", collapsed: new Set(), finished: false };
+    resetRun(url);
+    show("run");
+    $("#run-title").focus();
+    listen();
+  } catch (err) {
+    showError(err.message === "Failed to fetch" ? t("notRunning") : err.message);
+  } finally { go.disabled = false; }
+}
+function resetRun(url) {
+  setStatus("busy", t("reading"), url);
+  $("#bar").className = "bar indeterminate"; $("#bar span").style.width = ""; $("#bar").removeAttribute("aria-valuenow");
+  $("#run-count").textContent = t("looking");
+  $("#progress").hidden = false; $("#cancel").hidden = false; $("#run-hint").hidden = true; $("#done").hidden = true;
+  $("#filters").hidden = true; $("#feed").innerHTML = "";
+  document.title = t("readingTitle");
+}
+function setStatus(kind, title, sub) {
+  $("#status-icon").className = "status-icon" + (kind === "error" ? " error" : "");
+  $("#status-icon").innerHTML = kind === "busy" ? '<div class="spinner"></div>' : kind === "error" ? ICON.alert : ICON.check;
+  $("#run-title").textContent = title;
+  $("#run-sub").textContent = sub || "";
+}
+function hint(text, action) {
+  const h = $("#run-hint");
+  h.className = "hint" + (action ? " warn" : "");
+  h.innerHTML = (action ? ICON.alert : ICON.info) + `<span>${esc(text)}</span>` + (action ? `<button class="btn secondary small" type="button">${esc(action[0])}</button>` : "");
+  if (action) h.querySelector("button").onclick = action[1];
+  h.hidden = false;
+}
+function setFilter(key) {
+  state.filter = key; renderFilters(); renderFeed();
+  $("#filters").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+}
+
+function listen() {
+  const s = state, es = new EventSource(`/api/jobs/${s.id}/events`);
+  let lost;
+  s.es = es;
+  es.addEventListener("line", (e) => { clearTimeout(lost); if (state === s) onLine(e.data); });
+  es.addEventListener("done", (e) => { es.close(); if (state === s) onDone(JSON.parse(e.data)); });
+  es.onerror = () => {
+    clearTimeout(lost);
+    lost = setTimeout(() => { if (state === s && !s.finished) { es.close(); fail(t("lost"), t("lostD")); } }, 6000);
+  };
+}
+function onLine(line) {
+  const s = state;
+  let m;
+  if ((m = line.match(/^\[page\s*\] (\S+) \((.*)\)$/))) {
+    s.pages++;
+    if (s.pages > 1) $("#run-count").textContent = t("subpages", { n: s.pages });
+    if (/browser:/.test(m[2]) && !/browser failed/.test(m[2])) hint(t("hintBrowser"));
+    if (/browser failed/.test(m[2])) hint(t("hintNoBrowser"));
+    if (/article:/.test(m[2]) && s.pages === 1) hint(t("hintArticle"));
+  } else if ((m = line.match(/^(\d+) links to process -> (.+)$/))) {
+    s.total = +m[1];
+    s.title = m[2].split(/[\\/]/).pop();
+    setStatus("busy", s.title, t("found", { n: s.total, host: host(s.url) }));
+    $("#bar").className = "bar";
+    document.title = `0/${s.total} · CourseKeep`;
+    if (!s.total) $("#run-count").textContent = t("nothing");
+  } else if ((m = line.match(/^\[(ok|exists|linked|failed)\s*\] (.+?) \/ (.+)$/))) {
+    s.count++;
+    s.items.set(m[2] + "\u0000" + m[3], { section: m[2], name: m[3], status: m[1], kind: m[1] === "linked" ? "link" : "", fresh: true });
+    const pct = s.total ? Math.round((s.count / s.total) * 100) : 0;
+    $("#bar span").style.width = pct + "%"; $("#bar").setAttribute("aria-valuenow", pct);
+    $("#run-count").textContent = t("count", { c: s.count, t: s.total });
+    document.title = `${s.count}/${s.total} · CourseKeep`;
+    renderFeed();
+  } else if ((m = line.match(/^\[failed\] page (\S+): (.*)$/))) {
+    s.pageError = m[2];
+  }
+}
+function onDone(done) {
+  const { report, last } = done;
+  const s = state;
+  s.finished = true; s.done = done;
+  $("#cancel").hidden = true;
+  if (!report) {
+    if (s.cancelled) return fail(t("cancelled"), t("cancelledD"));
+    const [title, detail] = humanize(s.pageError || last);
+    return fail(t("cantOpen"), `${title}. ${detail === (s.pageError || last) ? "" : detail}`.trim());
+  }
+  s.report = report;
+  s.items = new Map(report.items.map((i) => [i.section + "\u0000" + i.name, i]));
+  const items = report.items;
+  const saved = items.filter((i) => i.status === "ok" || i.status === "exists").length;
+  const fresh = items.filter((i) => i.new).length;
+  const linked = items.filter((i) => i.status === "linked").length;
+  const failed = items.filter((i) => i.status === "failed").length;
+  const headline = s.cancelled ? t("hStopped")
+    : !saved ? t("hNothing")
+    : fresh === saved ? t("hKept", { n: saved })
+    : fresh ? t("hKeptNew", { n: fresh })
+    : t("hUpToDate");  // a rerun: everything was saved before
+  setStatus("done", headline, fresh && fresh < saved ? t("inTotal", { title: report.title, n: saved }) : report.title);
+  $("#progress").hidden = true;
+  $("#stats").innerHTML = [
+    [saved, t("stSaved")], [fresh, t("stNew")], [linked, t("stLinks")], [failed, t("stIssues"), failed ? "bad" : ""],
+  ].map(([n, l, c]) => `<div class="stat ${c || ""}"><b>${n}</b><span>${esc(l)}</span></div>`).join("");
+  $("#zip").href = `/api/jobs/${s.id}/zip`;
+  $("#done").hidden = false;
+  $("#run-hint").hidden = true;
+  if (failed && !s.cancelled) hint(t("failHint", { n: failed }), [t("showThem"), () => setFilter("issues")]);
+  const dups = (report.duplicates_removed || []).length;
+  if (dups && !s.dupShown) { toast(t("dupNote", { n: dups })); s.dupShown = true; }
+  document.title = `✓ ${report.title} · CourseKeep`;
+  const list = recentStore.get().filter((r) => r.url !== s.url);
+  list.unshift({ url: s.url, title: report.title, at: Date.now(), saved, failed });
+  recentStore.set(list.slice(0, 8));
+  renderFilters();
+  renderFeed();
+  $("#run-title").focus();
+}
+function fail(title, detail) {
+  setStatus("error", title, detail);
+  $("#progress").hidden = true;
+  $("#done").hidden = true;
+  document.title = "CourseKeep";
+}
+
+/* ---------- results ---------- */
+function renderFilters() {
+  const items = [...state.items.values()];
+  const btns = FILTERS.map(([key, label, fn]) => [key, t(label), items.filter(fn).length]).filter(([k, , n]) => k === "all" || n);
+  $("#filters").innerHTML = btns.map(([k, l, n]) => `<button type="button" data-filter="${k}" aria-pressed="${state.filter === k}">${esc(l)}<span class="n">${n}</span></button>`).join("");
+  $("#filters").hidden = btns.length < 3;
+}
+$("#filters").addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-filter]"); if (!b) return;
+  state.filter = b.dataset.filter; renderFilters(); renderFeed();
+  $(`#filters [data-filter="${state.filter}"]`).focus();
+});
+function row(it) {
+  const k = it.status === "failed" ? "failed" : it.status === "linked" ? (isVideo(it.url || "") ? "video" : "link") : it.kind || "pending";
+  let meta;
+  if (it.status === "failed") {
+    const [title, detail] = it.reason ? humanize(it.reason) : [STR[lang].r.other[0], ""];
+    meta = `<b>${esc(title)}</b>${detail ? " · " + esc(detail) : ""}`;
+  } else if (it.status === "linked") meta = esc(k === "video" ? t("mVideo") : t("mLink"));
+  else if (!it.kind) meta = esc(it.status === "exists" ? t("mExists") : t("mSaved"));
+  else meta = esc((KIND_KEYS.includes(it.kind) ? t("k" + it.kind) : t("kfiles"))
+    + (/^same content/.test(it.reason || "") ? t("mSame") : it.status === "exists" ? t("mAlready") : ""))
+    + (it.new ? `<span class="badge">${esc(t("badgeNew"))}</span>` : "");
+  const open = it.path ? `<button class="icon-btn" type="button" data-open="${esc(it.path)}" aria-label="${esc(t("openAria", { name: it.name }))}" title="${esc(t("open"))}">${ICON.folder}</button>` : "";
+  const src = it.url ? `<a class="icon-btn" href="${esc(safeHref(it.url))}" target="_blank" rel="noopener noreferrer" aria-label="${esc(t("originalAria", { name: it.name }))}" title="${esc(t("original"))}">${ICON.open}</a>` : "";
+  return `<li class="row ${it.status}${it.fresh && !state.finished ? " fresh" : ""}">
+    <span class="kicon k-${k}" aria-hidden="true">${ICON[k] || ICON.files}</span>
+    <div class="rmain"><div class="rname">${esc(it.name)}</div><div class="rmeta">${meta}</div></div>
+    <div class="ract">${open}${src}</div></li>`;
+}
+function renderFeed() {
+  const fn = FILTERS.find(([k]) => k === state.filter)[2];
+  const groups = new Map();
+  for (const it of state.items.values()) {
+    if (!fn(it)) continue;
+    if (!groups.has(it.section)) groups.set(it.section, []);
+    groups.get(it.section).push(it);
+  }
+  $("#feed").innerHTML = groups.size ? [...groups].map(([sec, list]) => `
+    <details class="sec" data-sec="${esc(sec)}" ${state.collapsed.has(sec) ? "" : "open"}>
+      <summary>${ICON.chevron}<span>${esc(sec === "_misc" ? t("secOther") : sec === "_unsorted" ? t("secCode") : sec)}</span><span class="count">${list.length}</span></summary>
+      <ul class="list">${list.map(row).join("")}</ul>
+    </details>`).join("") : state.finished ? `<p class="empty">${esc(t("empty"))}</p>` : "";
+  state.items.forEach((it) => (it.fresh = false));
+}
+$("#feed").addEventListener("toggle", (e) => {
+  const sec = e.target.dataset && e.target.dataset.sec; if (sec === undefined) return;
+  e.target.open ? state.collapsed.delete(sec) : state.collapsed.add(sec);
+}, true);
+$("#feed").addEventListener("click", async (e) => {
+  const b = e.target.closest("button[data-open]"); if (!b) return;
+  try { await api("/api/open", { job: state.id, rel: b.dataset.open }); } catch (err) { toast(err.message); }
+});
+$("#open-folder").addEventListener("click", async () => {
+  try { await api("/api/open", { job: state.id }); toast(t("opened")); } catch (err) { toast(err.message); }
+});
+$("#cancel").addEventListener("click", async () => {
+  state.cancelled = true;
+  $("#cancel").hidden = true; $("#run-count").textContent = t("stopping");
+  try { await api(`/api/jobs/${state.id}/cancel`); } catch {}
+});
+function goHome() {
+  if (state && !state.finished) { toast(t("stillRunning")); return; }
+  if (state && state.es) state.es.close();
+  state = null; show("home"); renderRecent(); document.title = "CourseKeep";
+  $("#url").focus(); $("#url").select();
+}
+$("#back").addEventListener("click", goHome);
+$("#again").addEventListener("click", goHome);
+$("#home-link").addEventListener("click", (e) => { e.preventDefault(); goHome(); });
+$("#dest").addEventListener("click", async () => { try { await api("/api/open", {}); } catch (err) { toast(err.message); } });
+window.addEventListener("beforeunload", (e) => { if (state && !state.finished) { e.preventDefault(); e.returnValue = ""; } });
+
+/* ---------- boot ---------- */
+applyLang();
+fetch("/api/config").then((r) => r.json()).then((c) => {
+  config = c;
+  $("#dest-path").textContent = c.out.replace(/^([A-Za-z]:)?[\\/](Users|home)[\\/][^\\/]+/, "~");
+  $("#dest").hidden = false;
+  applyLang();
+}).catch(() => {});
+renderRecent();
+</script>
+</body>
+</html>
