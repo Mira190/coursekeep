@@ -16,6 +16,7 @@ Use it three ways:
 
 ```
 downloads/CS146S The Modern Software Developer - Fall 2025 - Stanford University/
+├── index.html            ← the same list as a page any browser opens: click through to every file, also inside the zip
 ├── index.md              ← every item by week: local file, link only, or why it failed
 ├── _page.md              ← the course page's own text (all tabs)
 ├── manifest.json         ← what was saved when; reruns fetch only what's new
@@ -65,10 +66,13 @@ On Windows you can double-click `coursekeep.bat` instead. It checks for Python a
 
 Paste a link and press Enter. That's the whole workflow.
 
-- **While it runs**: you see live progress, with files appearing week by week as they arrive.
-- **When it finishes**: you get *Open folder* or *Download .zip*. Results can be filtered by type (slides, PDFs, articles…), and every item that failed comes with a plain-language reason and a link to the original.
-- **Courses that update weekly**: they stay under *Recent*, and **Check for new** fetches only what was added.
-- **Where files go**: `~/Downloads/CourseKeep` (change it with `--out`).
+- **While it runs**: you see live progress, with files appearing week by week as they arrive, each with its type, or the reason it failed. Reloading or closing the tab doesn't stop the download: open CourseKeep again and it picks the run back up.
+- **When it finishes**: you get *Open folder* or *Download .zip*, with the total size and how long it took.
+  - **Finding files**: filter by type (slides, PDFs, articles…) or search by name (press `/`).
+  - **Fixing failures**: every failed item has a plain-language reason and a link to the original. *Try again* fetches the failed items again; files over the size limit get a one-click *Allow up to 500 MB*.
+- **Your courses**: every course in the download folder is listed on the home page, including ones kept from the command line. Open one to see what its last run saved without downloading anything.
+  - **Check for new** fetches only what was added, with the options the course was first kept with (sub-pages, size limit).
+- **Where files go**: `~/Downloads/CourseKeep` (change it with `--out`). Starting the app a second time opens the copy that is already running.
 - **Language**: English or 中文, following your browser. The button in the top right switches it.
 
 The app runs only on your computer, at `127.0.0.1`, and is never reachable from your network. It answers only its own page, and it opens downloaded documents but never runs downloaded programs. Closing it or pressing Cancel also stops the hidden browser it may have started.

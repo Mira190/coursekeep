@@ -1,4 +1,4 @@
-from coursekeep import NeedsBrowser, check_text, download_url, link_density, norm_url, readme_urls, label, needs_browser, parse_links, plan, raw_urls, safe
+from coursekeep import NeedsBrowser, check_text, one_line, download_url, link_density, norm_url, readme_urls, label, needs_browser, parse_links, plan, raw_urls, safe
 
 H = "themodernsoftware.dev"
 L = lambda url, nav=False: {"url": url, "nav": nav}
@@ -78,4 +78,6 @@ try:
     raise AssertionError("soft 404 accepted")
 except RuntimeError as e:
     assert "404" in str(e)
+assert one_line(TimeoutError()) == "TimeoutError"                    # an error without a message must not crash the run
+assert one_line(RuntimeError("line one\n  line two")) == "line one line two"
 print("ok")

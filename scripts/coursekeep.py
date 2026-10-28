@@ -9,6 +9,7 @@ import concurrent.futures as cf
 import datetime
 import functools
 import hashlib
+import html
 import ipaddress
 import json
 import mimetypes
@@ -21,7 +22,7 @@ import time
 import urllib.robotparser
 from http.cookiejar import MozillaCookieJar
 from pathlib import Path
-from urllib.parse import unquote, urljoin, urlparse
+from urllib.parse import quote, unquote, urljoin, urlparse
 
 import requests
 import trafilatura
@@ -74,7 +75,7 @@ COLLECT_JS = """() => { let sec = ''; const out = [];
   } return out; }"""
 JAR = MozillaCookieJar()
 ALLOW_PRIVATE = True  # main() turns this off when the course itself is on the public internet
-_local, _pw, _slots, _slots_lock = threading.local(), {}, {}, threading.Lock()
+_local, _pw, _slots, _slots_lock, _out_lock = threading.local(), {}, {}, threading.Lock(), threading.Lock()
 
 
 def safe(s, n=90):
@@ -536,6 +537,57 @@ def fetch(job, out, max_mb):
         return path
 
 
+KIND_NAMES = {"slides": "Slides", "pdf": "PDF", "docs": "Document", "articles": "Article", "files": "File", "archives": "Archive",
+              "media": "Media"}
+INDEX_CSS = """body{max-width:820px;margin:0 auto;padding:24px 16px 64px;font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;
+color:#1b1a17;background:#f7f6f2}a{color:#0e7a63}h1{font-size:28px;line-height:1.2;margin:0 0 4px}h2{font-size:17px;margin:28px 0 8px}
+.sub,.m,.src{color:#6b685f;font-size:14px}ul{list-style:none;margin:0;padding:0;background:#fff;border:1px solid #e5e2d9;border-radius:12px}
+li{padding:9px 14px;border-top:1px solid #e5e2d9;overflow-wrap:anywhere}li:first-child{border-top:0}.failed .m{color:#b3401a}
+.new{font-size:12px;font-weight:700;color:#0e7a63}.src{float:right;margin-left:12px}
+@media (prefers-color-scheme:dark){body{color:#ecebe6;background:#111210}a,.new{color:#3cc39b}ul{background:#1a1b19;border-color:#2e2f2b}
+li{border-color:#2e2f2b}.sub,.m,.src{color:#9a978e}.failed .m{color:#f08d63}}"""
+
+
+def fmt_size(n):
+    """1234567 -> '1.2 MB'. Decimal units, like --max-mb."""
+    for unit in ("B", "KB", "MB", "GB"):
+        if n < 1000 or unit == "GB":
+            return f"{n:.1f} {unit}" if unit != "B" and n < 10 else f"{n:.0f} {unit}"
+        n /= 1000
+
+
+def html_index(title, source, items):
+    """index.html: index.md as a page any browser opens with a double-click, also from a zip or USB stick. No scripts, and
+    every piece of page text is escaped: a link label or title from the course page must not become markup."""
+    e, rows, cur = html.escape, [], None
+    for i in items:
+        if i["section"] != cur:
+            cur = i["section"]
+            name = {"_misc": "Other", "_unsorted": "Found in the page's code"}.get(cur, cur)
+            rows.append(f"{'</ul>' if rows else ''}<h2>{e(name)}</h2><ul>")
+        src = f'<a class="src" href="{e(i["url"])}">original</a>'
+        if i["path"]:
+            meta = " · ".join(x for x in (KIND_NAMES.get(i["kind"], "File"), fmt_size(i["size"] or 0),
+                                          "same file as another link" if i["reason"].startswith("same content") else "") if x)
+            rows.append(f'<li>{src}<a href="{e(quote(i["path"]))}">{e(i["name"])}</a> {"<span class=new>NEW</span> " if i["new"] else ""}'
+                        f'<span class="m">{e(meta)}</span></li>')
+        elif i["status"] == "linked":
+            rows.append(f'<li><a href="{e(i["url"])}">{e(i["name"])}</a> <span class="m">link, not downloaded</span></li>')
+        else:
+            rows.append(f'<li class="failed">{src}{e(i["name"])} <span class="m">{e(i["status"])}: {e(i["reason"])}</span></li>')
+    saved = sum(bool(i["path"]) for i in items)
+    failed = sum(i["status"] == "failed" for i in items)
+    return (f'<!doctype html>\n<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">'
+            f'<title>{e(title)}</title><style>{INDEX_CSS}</style></head><body>\n<h1>{e(title)}</h1>\n'
+            f'<p class="sub">{saved} saved · {failed} failed · <a href="{e(source)}">{e(source)}</a> · CourseKeep {__version__}, '
+            f'{datetime.date.today().isoformat()}</p>\n' + "\n".join(rows) + ("</ul>" if rows else "") + "\n</body></html>\n")
+
+
+def one_line(e):
+    """An error as one line (it goes into index.md and the progress feed). Some errors have no message, only a type."""
+    return " ".join(str(e).split()) or type(e).__name__
+
+
 def main():
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -550,6 +602,7 @@ def main():
     ap.add_argument("--all-links", action="store_true", help="also save pages linked from a blog post, not only its files")
     ap.add_argument("--max-mb", type=int, default=100, help="skip files bigger than this (default 100)")
     a = ap.parse_args()
+    started = time.monotonic()
     if a.cookies:
         JAR.load(a.cookies, ignore_discard=True, ignore_expires=True)
 
@@ -631,8 +684,12 @@ def main():
         path = dedup.keep_once(fetched)  # two links, one file: keep it once
         return ("ok" if path == fetched else f"exists: same content as {path.relative_to(out).as_posix()}"), path
 
-    def report_line(job, status):
-        print(f"[{status[:6]:6}] {job['sec']} / {job['name']}")  # one line per job: the web app's progress bar counts them
+    def report_line(job, status, path):
+        # One line per job: the web app's progress bar counts them. Names never contain ":", so what follows ": " is the
+        # file's type folder or why it failed. One write under a lock: print() from 8 threads at once can merge lines.
+        detail = path.parent.name if path else status.partition(": ")[2]
+        with _out_lock:
+            sys.stdout.write(f"[{status[:6]:6}] {job['sec']} / {job['name']}{': ' + detail if detail else ''}\n")
 
     def run(job):
         prev = manifest.get(job["url"])
@@ -648,8 +705,8 @@ def main():
             except NeedsBrowser:
                 return "browser", None  # reported after the second pass below
             except Exception as e:
-                status, path = f"failed: {e}"[:160], None
-        report_line(job, status)
+                status, path = f"failed: {one_line(e)}"[:160], None
+        report_line(job, status, path)
         return status, path
 
     with cf.ThreadPoolExecutor(a.threads) as ex:
@@ -667,15 +724,15 @@ def main():
         except NeedsBrowser:
             results[i] = ("failed: no main text found, even after running the page's JavaScript", None)
         except Exception as e:
-            results[i] = (f"failed: {str(e).splitlines()[0]}"[:160], None)
-        report_line(job, results[i][0])
+            results[i] = (f"failed: {one_line(e)}"[:160], None)
+        report_line(job, *results[i])
     if "p" in _pw:
         _pw["p"].stop()
     # After the parallel downloads and in page order, so the first link to a file always keeps it (not the fastest one).
     results = [kept(path) if status == "ok" else (status, path) for status, path in results]
 
     today, new = datetime.date.today().isoformat(), 0
-    lines, cur, items = [f"# {title}\n\nSource: {a.url}\n"], None, []
+    lines, cur, items = [f"# {title.replace('<', '&lt;')}\n\nSource: {a.url}\n"], None, []  # Markdown viewers render HTML
     order = {}  # browser and static links interleave: group by section, in order of first appearance
     for job, (status, path) in sorted(zip(jobs, results), key=lambda jr: order.setdefault(jr[0]["sec"], len(order))):
         rel = path.relative_to(out).as_posix() if path else None
@@ -687,16 +744,21 @@ def main():
         new += is_new
         items.append({"section": job["sec"], "name": job["name"], "url": job["url"], "status": status.split(":")[0],
                       "reason": status.partition(": ")[2], "new": is_new, "path": rel,
-                      "kind": rel.split("/")[-2] if rel else ("link" if job["act"] == "list" else "")})
+                      "kind": rel.split("/")[-2] if rel else ("link" if job["act"] == "list" else ""),
+                      "size": path.stat().st_size if path else None})
         if job["sec"] != cur:
             cur = job["sec"]
             lines.append(f"\n## {cur}\n")
         md_name, md_rel = ((s or "").replace("[", "\\[").replace("]", "\\]") for s in (job["name"], rel))  # page text never becomes a link
         lines.append(f"- {'🆕 ' if is_new else ''}{md_name} — {f'[{md_rel}](<{rel}>)' if rel else status} — <{job['url']}>")
     (out / "index.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    (out / "index.html").write_text(html_index(title, a.url, items), encoding="utf-8")
     mpath.write_text(json.dumps(manifest, ensure_ascii=False, indent=1), encoding="utf-8")
+    # What the web app shows. `options` let "Check for new" repeat the run as it was (sub-pages too), not with today's toggles.
     (out / "report.json").write_text(json.dumps({"title": title, "url": a.url, "folder": str(out.resolve()), "items": items,
-                                                 "duplicates_removed": [p.relative_to(out).as_posix() for p, _ in dedup.removed]},
+                                                 "duplicates_removed": [p.relative_to(out).as_posix() for p, _ in dedup.removed],
+                                                 "options": {"depth": a.depth, "all_links": a.all_links, "max_mb": a.max_mb},
+                                                 "seconds": round(time.monotonic() - started, 1)},
                                                 ensure_ascii=False), encoding="utf-8")
     bad = sum(s.startswith("failed") for s, _ in results)
     print(f"Done: {len(results) - bad} saved/linked ({new} new), {bad} failed. See {out / 'index.md'}")

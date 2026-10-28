@@ -3,6 +3,7 @@
 Usage: python scripts/app.py [--port 8765] [--out ~/Downloads/CourseKeep] [--no-browser]
 """
 import argparse
+import http.client
 import importlib.util
 import json
 import os
@@ -18,7 +19,7 @@ import webbrowser
 import zipfile
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import quote, urlparse
+from urllib.parse import parse_qs, quote, urlparse
 
 FROZEN = getattr(sys, "frozen", False)  # running as the packaged CourseKeep.exe (PyInstaller)
 HERE = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent))
@@ -42,11 +43,17 @@ def kill_tree(proc):
         os.killpg(proc.pid, 15)
 
 
+class Server(ThreadingHTTPServer):
+    # On Windows SO_REUSEADDR lets a socket bind a port another program is listening on: two copies would share 8765.
+    allow_reuse_address = sys.platform != "win32"
+
+
 class Job:
     """One coursekeep.py run in a subprocess; its stdout lines are the progress feed."""
 
-    def __init__(self, url, flags):
-        self.lines, self.out, self.done, self.started = [], None, False, time.time()
+    def __init__(self, url, flags, opts):
+        self.url, self.opts = url, opts  # so a reloaded page can pick the run back up, and retry it the same way
+        self.lines, self.out, self.done, self.cancelled, self.started = [], None, False, False, time.time()
         self.proc = subprocess.Popen(
             [*engine_cmd(), url, "-o", str(OUT), *flags], start_new_session=sys.platform != "win32",
             stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, encoding="utf-8", errors="replace")
@@ -65,6 +72,50 @@ class Job:
         p = self.out / "report.json" if self.out else None
         fresh = p and p.exists() and p.stat().st_mtime >= self.started  # a cancelled run must not show last run's report
         return json.loads(p.read_text(encoding="utf-8")) if fresh else None
+
+
+def course_dir(name):
+    """A course folder directly inside the download folder, or None. Names come from page text: they may not lead elsewhere."""
+    out = OUT.resolve()
+    try:
+        d = (out / str(name)).resolve() if name else None
+        return d if d and d.parent == out and d.is_dir() else None
+    except (OSError, ValueError):  # a NUL byte, a name too long for the file system
+        return None
+
+
+def library():
+    """Every course in the download folder, newest first. report.json is what its last finished run saw."""
+    courses = []
+    for rep in OUT.glob("*/report.json"):
+        try:
+            r = json.loads(rep.read_text(encoding="utf-8"))
+            items = [i for i in r["items"] if isinstance(i, dict)]
+            status = [i.get("status") for i in items]
+            courses.append({"name": rep.parent.name, "title": str(r.get("title") or rep.parent.name), "url": str(r.get("url") or ""),
+                            "at": rep.stat().st_mtime, "saved": status.count("ok") + status.count("exists"),
+                            "failed": status.count("failed"), "options": r.get("options"),
+                            "bytes": sum({str(i["path"]): int(i.get("size") or 0) for i in items if i.get("path")}.values())})  # each file once
+        except (OSError, ValueError, KeyError, TypeError, AttributeError):
+            continue  # unreadable, half-written by a run that crashed, or deleted meanwhile: one bad report must not hide the rest
+    return sorted(courses, key=lambda c: -c["at"])
+
+
+def running(url=None):
+    return [(jid, j) for jid, j in list(JOBS.items()) if not j.done and url in (None, j.url)]  # list(): other requests add jobs
+
+
+def serves_us(port):
+    """True if a CourseKeep for the same download folder already answers on this port (the app was started twice)."""
+    c = http.client.HTTPConnection("127.0.0.1", port, timeout=2)  # not urllib: it would send localhost through HTTP_PROXY
+    try:
+        c.request("GET", "/api/config")
+        cfg = json.loads(c.getresponse().read())
+        return "version" in cfg and Path(cfg.get("out", "")) == OUT
+    except (OSError, ValueError, AttributeError):
+        return False
+    finally:
+        c.close()
 
 
 def reveal(path):
@@ -106,18 +157,35 @@ class Handler(BaseHTTPRequestHandler):
             self.send(404, {"error": "unknown job"})
         return JOBS.get(jid)
 
+    def course(self, name):
+        if not (d := course_dir(name)):
+            self.send(404, {"error": "no such course in the download folder"})
+        return d
+
     def do_GET(self):
         if not self.guard():
             return
-        path = urlparse(self.path).path
+        url = urlparse(self.path)
+        path, name = url.path, (parse_qs(url.query).get("course") or [""])[0]
         if path == "/":
             self.send(200, (HERE / "ui.html").read_bytes(), "text/html; charset=utf-8")
         elif path == "/api/config":
             self.send(200, {"out": str(OUT), "version": VERSION})
+        elif path == "/api/jobs":  # still running: a reloaded or reopened page picks its download back up
+            self.send(200, [{"id": jid, "url": j.url, "opts": j.opts, "started": j.started} for jid, j in running()])
+        elif path == "/api/courses":
+            self.send(200, library())
+        elif path == "/api/course":
+            if d := self.course(name):
+                try:
+                    self.send(200, {**json.loads((d / "report.json").read_text(encoding="utf-8")), "name": d.name})
+                except (OSError, ValueError):
+                    self.send(404, {"error": "this course has no finished run yet"})
+        elif path == "/api/zip":
+            if d := self.course(name):
+                self.zip(d)
         elif (m := re.fullmatch(r"/api/jobs/(\w+)/events", path)) and (job := self.job(m[1])):
             self.events(job)
-        elif (m := re.fullmatch(r"/api/jobs/(\w+)/zip", path)) and (job := self.job(m[1])):
-            self.zip(job)
         elif not path.startswith("/api/jobs/"):
             self.send(404, {"error": "not found"})
 
@@ -135,24 +203,31 @@ class Handler(BaseHTTPRequestHandler):
             url = str(body.get("url", "")).strip()
             if urlparse(url).scheme not in ("http", "https") or not urlparse(url).netloc:
                 return self.send(400, {"error": "Enter a full web address, like https://example.edu/course"})
-            flags = ["--depth", "1"] if body.get("depth") else []
-            flags += ["--refresh"] * bool(body.get("refresh")) + ["--all-links"] * bool(body.get("allLinks"))
             try:
-                flags += ["--max-mb", str(max(1, int(body.get("maxMb") or 100)))]
+                opts = {"depth": bool(body.get("depth")), "refresh": bool(body.get("refresh")), "allLinks": bool(body.get("allLinks")),
+                        "maxMb": max(1, int(body.get("maxMb") or 100))}
             except (TypeError, ValueError):
                 return self.send(400, {"error": "maxMb must be a number"})
+            if busy := running(url):  # a second tab or a double submit: two runs writing one folder would race on its manifest
+                return self.send(200, {"id": busy[0][0], "opts": busy[0][1].opts})  # the options that run really uses
+            flags = ["--depth", "1"] * opts["depth"] + ["--refresh"] * opts["refresh"] + ["--all-links"] * opts["allLinks"]
             jid = uuid.uuid4().hex[:12]
-            JOBS[jid] = Job(url, flags)
-            self.send(200, {"id": jid})
+            JOBS[jid] = Job(url, [*flags, "--max-mb", str(opts["maxMb"])], opts)
+            self.send(200, {"id": jid, "opts": opts})
         elif path == "/api/open":
-            job = JOBS.get(body.get("job"))
-            base = (job.out if job and job.out else OUT).resolve()
-            target = (base / str(body.get("rel") or "")).resolve()
-            if not target.is_relative_to(base) or not target.exists():
+            base = course_dir(body["course"]) if body.get("course") else OUT.resolve()
+            try:
+                target = (base / str(body.get("rel") or "")).resolve() if base else None
+                ok = target and target.is_relative_to(base) and target.exists()
+            except (OSError, ValueError):
+                ok = False
+            if not ok:
                 return self.send(400, {"error": "not in the download folder"})
             reveal(target)
             self.send(200, {"ok": True})
         elif (m := re.fullmatch(r"/api/jobs/(\w+)/cancel", path)) and (job := self.job(m[1])):
+            # Every tab showing this run says "cancelled", not "couldn't open the page". A run that already finished stays finished.
+            job.cancelled = job.cancelled or job.proc.poll() is None
             kill_tree(job.proc)
             self.send(200, {"ok": True})
         elif not path.startswith("/api/jobs/"):
@@ -171,7 +246,8 @@ class Handler(BaseHTTPRequestHandler):
                     self.wfile.write(f"id: {i}\nevent: line\ndata: {job.lines[i]}\n\n".encode())
                     i += 1
                 if job.done and i >= len(job.lines):
-                    done = {"code": job.proc.returncode, "report": job.report(), "last": job.lines[-1] if job.lines else ""}
+                    done = {"code": job.proc.returncode, "report": job.report(), "last": job.lines[-1] if job.lines else "",
+                            "cancelled": job.cancelled}
                     self.wfile.write(f"event: done\ndata: {json.dumps(done)}\n\n".encode())
                     self.wfile.flush()
                     return
@@ -180,21 +256,19 @@ class Handler(BaseHTTPRequestHandler):
         except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError):
             pass
 
-    def zip(self, job):
-        if not job.out or not job.out.exists():
-            return self.send(404, {"error": "nothing downloaded yet"})
+    def zip(self, folder):
         with tempfile.TemporaryFile() as tmp:
             with zipfile.ZipFile(tmp, "w", zipfile.ZIP_STORED) as z:  # PDFs and slides are already compressed
-                for f in sorted(job.out.rglob("*")):
+                for f in sorted(folder.rglob("*")):
                     if f.is_file() and f.name not in ("manifest.json", "report.json") and f.suffix != ".part":
-                        z.write(f, Path(job.out.name) / f.relative_to(job.out))
+                        z.write(f, Path(folder.name) / f.relative_to(folder))
             size = tmp.tell()
             tmp.seek(0)
             self.send_response(200)
             self.send_header("Content-Type", "application/zip")
             self.send_header("Content-Length", str(size))
             self.send_header("Content-Disposition", f"attachment; filename=\"coursekeep.zip\"; "
-                                                    f"filename*=UTF-8''{quote(job.out.name + '.zip')}")
+                                                    f"filename*=UTF-8''{quote(folder.name + '.zip')}")
             self.end_headers()
             shutil.copyfileobj(tmp, self.wfile)
 
@@ -221,9 +295,15 @@ def main():
     OUT.mkdir(parents=True, exist_ok=True)
     for PORT in range(a.port, a.port + 20):
         try:
-            server = ThreadingHTTPServer(("127.0.0.1", PORT), Handler)  # never 0.0.0.0: it fetches any URL it is given
+            server = Server(("127.0.0.1", PORT), Handler)  # never 0.0.0.0: it fetches any URL it is given
             break
         except OSError:
+            if serves_us(PORT):  # started twice (a second double-click): show the running one, with its download, not an empty copy
+                url = f"http://127.0.0.1:{PORT}/"
+                print(f"CourseKeep is already running at {url}")
+                if not a.no_browser:
+                    webbrowser.open(url)
+                return
             continue
     else:
         sys.exit("No free port found.")

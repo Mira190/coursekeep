@@ -87,14 +87,16 @@ kbd { font: 12px/1 var(--font); padding: 2px 5px; border-radius: 6px; border: 1p
 .toggle small { color: var(--ink-3); font-size: 14px; }
 .toggle select { margin-left: auto; padding: 6px 10px; border-radius: 9px; border: 1px solid var(--line); background: var(--surface); }
 
-.recent { margin: 44px 0 64px; }
+.lib { margin: 44px 0 64px; }
 h2.label { font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--ink-3); font-weight: 600; margin: 0 0 10px; }
 .list { list-style: none; margin: 0; padding: 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
-.recent li { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-top: 1px solid var(--line); }
-.recent li:first-child { border-top: 0; }
-.recent .rt { flex: 1; min-width: 0; }
-.recent .rt b { display: block; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.recent .rt span { color: var(--ink-3); font-size: 13px; }
+.lib li { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-top: 1px solid var(--line); }
+.lib li:first-child { border-top: 0; }
+.lib .rt { flex: 1; min-width: 0; padding: 2px 4px; margin: -2px -4px; text-align: left; background: none; border: 0; border-radius: 8px; cursor: pointer; }
+.lib .rt b { display: block; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lib .rt:hover b { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
+.lib .rt span { color: var(--ink-3); font-size: 13px; }
+.more { margin: 8px 0 0 -10px; }
 
 /* Run */
 .run { padding: 28px 0 80px; }
@@ -129,7 +131,16 @@ h2.label { font-size: 13px; text-transform: uppercase; letter-spacing: .08em; co
 .stat.bad b { color: var(--bad); }
 .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
 
-.filters { position: sticky; top: 0; z-index: 2; display: flex; flex-wrap: wrap; gap: 6px; padding: 14px 0 12px; margin-top: 18px; background: var(--bg); }
+.toolbar { position: sticky; top: 0; z-index: 2; display: flex; align-items: flex-start; gap: 8px 12px; padding: 14px 0 12px; margin-top: 18px; background: var(--bg); }
+.filters { display: flex; flex-wrap: wrap; gap: 6px; flex: 1; min-width: 0; }
+.find { position: relative; flex: 0 1 230px; margin-left: auto; }
+.find svg { position: absolute; left: 11px; top: 50%; width: 15px; height: 15px; transform: translateY(-50%); color: var(--ink-3); pointer-events: none; }
+.find input { width: 100%; border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 6px 34px 6px 32px; font-size: 14px; }
+.find input::placeholder { color: var(--ink-3); }
+.find input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.find input::-webkit-search-cancel-button { display: none; }
+.find kbd { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); color: var(--ink-3); pointer-events: none; }
+.find input:focus ~ kbd, .find input:not(:placeholder-shown) ~ kbd { display: none; }
 .filters button { flex: none; border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 6px 12px; font-size: 14px; color: var(--ink-2); cursor: pointer; }
 .filters button[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--bg); }
 .filters button .n { color: var(--ink-3); margin-left: 4px; font-variant-numeric: tabular-nums; }
@@ -162,7 +173,7 @@ h2.label { font-size: 13px; text-transform: uppercase; letter-spacing: .08em; co
 .icon-btn { display: inline-grid; place-items: center; width: 34px; height: 34px; border-radius: 9px; color: var(--ink-3); background: none; border: 0; cursor: pointer; }
 .icon-btn:hover { background: var(--surface-2); color: var(--ink); }
 .icon-btn svg { width: 17px; height: 17px; }
-.empty { text-align: center; color: var(--ink-3); padding: 28px; }
+.empty { text-align: center; color: var(--ink-3); padding: 28px; overflow-wrap: anywhere; }
 .toast { position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 20px); opacity: 0; background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 10px; font-size: 14px; transition: .2s; pointer-events: none; z-index: 10; }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
 
@@ -172,7 +183,18 @@ h2.label { font-size: 13px; text-transform: uppercase; letter-spacing: .08em; co
   .search { flex-wrap: wrap; }
   .search input { padding: 12px 8px; }
   .search .btn { width: 100%; }
-  .search kbd, .dest span { display: none; }
+  .search kbd, .dest span, .find kbd { display: none; }
+  .lib .lbl { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .lib .btn.small { padding: 8px; }
+  .lib .kicon { display: none; }  /* the open-folder button next to it says the same */
+  .hint { flex-wrap: wrap; }
+  .hint span { flex: 1 1 calc(100% - 28px); }
+  .hint .btn { margin: 0 0 0 28px; }
+  .hint .btn + .btn { margin-left: 0; }
+  .toolbar { flex-direction: column; align-items: stretch; }
+  .filters { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin: 0 -20px; padding: 0 20px; }  /* one row you swipe */
+  .filters::-webkit-scrollbar { display: none; }
+  .find { flex: none; margin: 0; }
   .stats { grid-template-columns: repeat(2, 1fr); }
   .actions .btn { flex: 1; }
   .card { padding: 18px; }
@@ -226,9 +248,10 @@ h2.label { font-size: 13px; text-transform: uppercase; letter-spacing: .08em; co
       </details>
     </section>
 
-    <section class="recent" id="recent" hidden>
-      <h2 class="label" data-i18n="recent"></h2>
-      <ul class="list" id="recent-list"></ul>
+    <section class="lib" id="library" hidden>
+      <h2 class="label" data-i18n="library"></h2>
+      <ul class="list" id="lib-list"></ul>
+      <button class="btn ghost small more" type="button" id="lib-more" hidden></button>
     </section>
   </main>
 
@@ -236,10 +259,10 @@ h2.label { font-size: 13px; text-transform: uppercase; letter-spacing: .08em; co
     <button class="btn ghost back" type="button" id="back">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg><span data-i18n="back"></span>
     </button>
-    <section class="card" aria-live="polite">
+    <section class="card">
       <div class="status">
         <div class="status-icon" id="status-icon"><div class="spinner"></div></div>
-        <div class="status-text">
+        <div class="status-text" aria-live="polite">
           <h1 id="run-title" tabindex="-1"></h1>
           <p id="run-sub"></p>
         </div>
@@ -260,9 +283,18 @@ h2.label { font-size: 13px; text-transform: uppercase; letter-spacing: .08em; co
           <button class="btn ghost" type="button" id="again" data-i18n="again"></button>
         </div>
       </div>
-      <p class="hint" id="run-hint" hidden></p>
+      <div class="actions" id="fail-actions" hidden></div>
+      <p class="hint" id="run-hint" role="status" hidden></p>
     </section>
-    <nav class="filters" id="filters" data-i18n-aria="filterBy" hidden></nav>
+    <div class="toolbar" id="toolbar" hidden>
+      <nav class="filters" id="filters" data-i18n-aria="filterBy"></nav>
+      <div class="find" id="find-box">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <label for="find" class="sr-only" data-i18n="searchLabel"></label>
+        <input id="find" type="search" autocomplete="off" spellcheck="false" data-i18n-ph="search">
+        <kbd aria-hidden="true">/</kbd>
+      </div>
+    </div>
     <div id="feed"></div>
   </main>
 </div>
@@ -292,7 +324,6 @@ const ICON = {
   folder: svg('<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>'),
   info: svg('<circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/>'),
   chevron: svg('<path d="m9 6 6 6-6 6"/>', 2.2),
-  close: svg('<path d="M18 6 6 18M6 6l12 12"/>'),
   refresh: svg('<path d="M21 12a9 9 0 1 1-2.6-6.4L21 8M21 3v5h-5"/>'),
 };
 
@@ -307,9 +338,11 @@ const STR = {
     optRefresh: "Download everything again", optRefreshD: "Use when slides were updated after class. Normally only new items are fetched.",
     optAll: "Save the pages a blog post cites", optAllD: "By default a post keeps its own text and the files it links to.",
     optMax: "Skip files larger than", optMaxD: "Protects you from multi-gigabyte videos and archives.",
-    recent: "Recent", checkNew: "Check for new", checkNewTitle: "Download what's new since last time", forget: "Remove {t} from recent",
-    recentMeta: (v) => `${v.host} · ${v.ago} · ${v.saved} saved${v.failed ? `, ${v.failed} need attention` : ""}`,
+    library: "Your courses", checkNew: "Check for new", checkNewTitle: "Download what's new since last time, with the same options",
+    checkNewAria: "Check for new: {t}", openCourseAria: "Open the folder of {t}", showAll: "Show all {n}",
+    libMeta: (v) => [v.host, v.ago, `${v.saved} saved`, v.size, v.failed ? `${v.failed} need attention` : ""].filter(Boolean).join(" · "),
     justNow: "just now", minAgo: "{n} min ago", hAgo: "{n} h ago", yesterday: "yesterday", daysAgo: "{n} days ago",
+    secs: "{n} s", minSecs: "{m} min {s} s", took: "took {t}", lastRun: "last kept {ago}",
     back: "New download", reading: "Reading the page…", readingTitle: "Reading… · CourseKeep", looking: "Looking for slides, PDFs and readings",
     progress: "Download progress", cancel: "Cancel", stopping: "Stopping…", subpages: "Reading sub-pages… {n} so far",
     hintBrowser: "This page builds its content with JavaScript, so CourseKeep opened it in a hidden browser to see everything.",
@@ -317,12 +350,14 @@ const STR = {
     hintArticle: "This looks like a blog post, so CourseKeep is saving its text and the files it links to. Turn on “Save the pages a blog post cites” in Options to get those too.",
     found: (v) => `Found ${v.n} item${s_(v.n)} on ${v.host}`, nothing: "Nothing to download on this page", count: "{c} of {t}",
     openFolder: "Open folder", zip: "Download .zip", again: "Keep another",
-    stSaved: "Saved", stNew: "New this time", stLinks: "Links & videos", stIssues: "Need attention",
+    stSaved: "Saved", stNew: "New this time", stNewLast: "New last time", stLinks: "Links & videos", stIssues: "Need attention",
     hStopped: "Stopped early", hNothing: "Nothing to keep on this page", hKept: (v) => `Kept ${v.n} item${s_(v.n)}`,
     hKeptNew: (v) => `Kept ${v.n} new item${s_(v.n)}`, hUpToDate: "Already up to date", inTotal: "{title} · {n} items in total",
-    failHint: (v) => `${v.n} item${s_(v.n)} couldn't be downloaded. Each one says why.`, showThem: "Show them",
+    failHint: (v) => `${v.n} item${s_(v.n)} couldn't be downloaded. Each one says why.`, showThem: "Show them", tryAgain: "Try again",
+    raiseLimit: "Allow up to {n}",
     dupNote: (v) => `Removed ${v.n} duplicate file${s_(v.n)} (identical content was already saved).`,
-    cancelled: "Download cancelled", cancelledD: "Files saved so far are in your CourseKeep folder. “Check for new” continues where it stopped.",
+    cancelled: "Download cancelled", cancelledD: "Files saved so far are in your CourseKeep folder. Continue picks up where it stopped.",
+    resume: "Continue", resumed: "Picked up the download that was still running",
     cantOpen: "Couldn't open that page", lost: "Lost connection to CourseKeep",
     lostD: "Is the CourseKeep window still open? Start it again and press “Check for new” to continue.",
     notRunning: "CourseKeep isn't running. Start it again with coursekeep.bat or `python scripts/app.py`.",
@@ -330,10 +365,10 @@ const STR = {
     badUrl: "That doesn't look like a web address. Try something like https://cs231n.github.io/",
     stillRunning: "Still downloading. Press Cancel first, or wait until it finishes.", opened: "Opened in your file manager",
     fAll: "All", fIssues: "Needs attention", fSlides: "Slides", fPdf: "PDFs", fDocs: "Docs", fArticles: "Articles", fOther: "Other files", fLinks: "Links",
-    filterBy: "Filter by type",
+    filterBy: "Filter by type", search: "Search", searchLabel: "Search the results", noMatch: "Nothing matches “{q}”.",
     kslides: "Slides", kpdf: "PDF", kdocs: "Document", karticles: "Article", kfiles: "File", karchives: "Archive", kmedia: "Media", klink: "Link",
     mVideo: "Video · link kept in the index", mLink: "Link kept in the index", mExists: "Already saved", mSaved: "Saved",
-    mAlready: " · already saved", mSame: " · same file as another link", badgeNew: "NEW",
+    mAlready: "already saved", mSame: "same file as another link", badgeNew: "NEW",
     open: "Open", openAria: "Open {name}", original: "Open the original", originalAria: "Open the original of {name}",
     secOther: "Other", secCode: "Found in the page's code", empty: "Nothing here.", destTitle: "Files are saved to {p}. Click to open.",
     r: {
@@ -348,8 +383,10 @@ const STR = {
       fake: ["Not a real file", "The server sent a different page instead of the file."],
       notext: ["No readable text", "This page has nothing to save as an article."],
       slow: ["Took too long", "The site was too slow to answer. Try again later."],
-      cut: ["Download was interrupted", "The connection dropped. Press “Check for new” to try again."],
+      cut: ["Download was interrupted", "The connection dropped. Press “Try again” to fetch it."],
       lan: ["Blocked for your safety", "This link points into your own network, which a public course page shouldn't do."],
+      program: ["Program file, not downloaded", "A course link sent a program instead of a document. Open the original only if you trust it."],
+      ratelimit: ["GitHub's hourly limit reached", "GitHub allows 60 folder reads an hour without sign-in. Try again later."],
       other: ["Couldn't download", ""],
     },
   },
@@ -361,9 +398,11 @@ const STR = {
     optRefresh: "全部重新下载", optRefreshD: "课后课件有更新时使用。默认只下载新增的内容。",
     optAll: "同时保存博客引用的网页", optAllD: "默认只保存文章正文和文中链接的文件。",
     optMax: "跳过大于此大小的文件", optMaxD: "避免误下几个 GB 的视频和压缩包。",
-    recent: "最近", checkNew: "检查更新", checkNewTitle: "只下载上次之后新增的内容", forget: "从最近列表移除 {t}",
-    recentMeta: (v) => `${v.host} · ${v.ago} · 已保存 ${v.saved} 项${v.failed ? `，${v.failed} 项需处理` : ""}`,
+    library: "已保存的课程", checkNew: "检查更新", checkNewTitle: "按上次的选项，只下载之后新增的内容",
+    checkNewAria: "检查更新：{t}", openCourseAria: "打开 {t} 的文件夹", showAll: "显示全部 {n} 个",
+    libMeta: (v) => [v.host, v.ago, `已保存 ${v.saved} 项`, v.size, v.failed ? `${v.failed} 项需处理` : ""].filter(Boolean).join(" · "),
     justNow: "刚刚", minAgo: "{n} 分钟前", hAgo: "{n} 小时前", yesterday: "昨天", daysAgo: "{n} 天前",
+    secs: "{n} 秒", minSecs: "{m} 分 {s} 秒", took: "用时 {t}", lastRun: "上次保存于{ago}",
     back: "新下载", reading: "正在读取页面…", readingTitle: "正在读取… · CourseKeep", looking: "正在查找课件、PDF 和阅读材料",
     progress: "下载进度", cancel: "取消", stopping: "正在停止…", subpages: "正在读取子页面…已读 {n} 个",
     hintBrowser: "这个页面用 JavaScript 生成内容，CourseKeep 在后台用浏览器打开它，确保不漏掉任何内容。",
@@ -371,12 +410,14 @@ const STR = {
     hintArticle: "这看起来是一篇博客文章，CourseKeep 会保存正文和文中链接的文件。如需同时保存它引用的网页，请在“选项”中开启“同时保存博客引用的网页”。",
     found: (v) => `在 ${v.host} 上找到 ${v.n} 项`, nothing: "这个页面没有可下载的内容", count: "{c} / {t}",
     openFolder: "打开文件夹", zip: "下载 .zip", again: "保存另一个",
-    stSaved: "已保存", stNew: "本次新增", stLinks: "链接和视频", stIssues: "需处理",
+    stSaved: "已保存", stNew: "本次新增", stNewLast: "上次新增", stLinks: "链接和视频", stIssues: "需处理",
     hStopped: "已提前停止", hNothing: "这个页面没有可保存的内容", hKept: (v) => `已保存 ${v.n} 项`,
     hKeptNew: (v) => `新保存 ${v.n} 项`, hUpToDate: "已是最新", inTotal: "{title} · 共 {n} 项",
-    failHint: (v) => `有 ${v.n} 项无法下载，每项都写明了原因。`, showThem: "查看",
+    failHint: (v) => `有 ${v.n} 项无法下载，每项都写明了原因。`, showThem: "查看", tryAgain: "重试",
+    raiseLimit: "放宽到 {n}",
     dupNote: (v) => `已删除 ${v.n} 个重复文件（相同内容已保存过）。`,
-    cancelled: "已取消下载", cancelledD: "已下载的文件在 CourseKeep 文件夹中。点“检查更新”可从中断处继续。",
+    cancelled: "已取消下载", cancelledD: "已下载的文件在 CourseKeep 文件夹中。点“继续下载”可从中断处继续。",
+    resume: "继续下载", resumed: "已接上仍在进行的下载",
     cantOpen: "无法打开这个页面", lost: "与 CourseKeep 的连接已断开",
     lostD: "CourseKeep 窗口还开着吗？重新启动后点“检查更新”即可继续。",
     notRunning: "CourseKeep 没有在运行。请重新打开 coursekeep.bat，或运行 python scripts/app.py。",
@@ -384,10 +425,10 @@ const STR = {
     badUrl: "这看起来不是网址。试试类似 https://cs231n.github.io/ 的地址。",
     stillRunning: "仍在下载中。请先点“取消”，或等待完成。", opened: "已在文件管理器中打开",
     fAll: "全部", fIssues: "需处理", fSlides: "课件", fPdf: "PDF", fDocs: "文档", fArticles: "文章", fOther: "其他文件", fLinks: "链接",
-    filterBy: "按类型筛选",
+    filterBy: "按类型筛选", search: "搜索", searchLabel: "搜索结果", noMatch: "没有与“{q}”匹配的内容。",
     kslides: "课件", kpdf: "PDF", kdocs: "文档", karticles: "文章", kfiles: "文件", karchives: "压缩包", kmedia: "媒体", klink: "链接",
     mVideo: "视频 · 链接已记录在索引中", mLink: "链接已记录在索引中", mExists: "已保存过", mSaved: "已保存",
-    mAlready: " · 已保存过", mSame: " · 与另一个链接是同一文件", badgeNew: "新",
+    mAlready: "已保存过", mSame: "与另一个链接是同一文件", badgeNew: "新",
     open: "打开", openAria: "打开 {name}", original: "打开原始链接", originalAria: "打开 {name} 的原始链接",
     secOther: "其他", secCode: "从页面代码中找到", empty: "这里没有内容。", destTitle: "文件保存在 {p}，点击打开。",
     r: {
@@ -402,8 +443,10 @@ const STR = {
       fake: ["不是真正的文件", "服务器返回的是网页而不是文件。"],
       notext: ["没有可读的正文", "这个页面没有可保存为文章的内容。"],
       slow: ["下载超时", "网站响应太慢，请稍后再试。"],
-      cut: ["下载中断", "连接中途断开。点“检查更新”即可重试。"],
+      cut: ["下载中断", "连接中途断开。点“重试”即可重新下载。"],
       lan: ["已出于安全原因拦截", "这个链接指向你的本地网络，公开的课程页面不应如此。"],
+      program: ["程序文件，未下载", "课程链接返回的是程序而不是文档。只有在你信任它时才打开原始链接。"],
+      ratelimit: ["已达 GitHub 每小时上限", "未登录时 GitHub 每小时只允许读取 60 次文件夹，请稍后再试。"],
       other: ["无法下载", ""],
     },
   },
@@ -412,9 +455,9 @@ const store = (key, fallback) => ({
   get() { try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; } },
   set(v) { try { localStorage.setItem(key, JSON.stringify(v)); } catch {} },
 });
-const recentStore = store("coursekeep.recent", []);
 const langStore = store("coursekeep.lang", null);
 let lang = langStore.get() || (/^zh\b/i.test(navigator.language || "") ? "zh" : "en");
+if (!STR[lang]) lang = "en";
 function t(key, v = {}) {
   const s = STR[lang][key] ?? STR.en[key] ?? key;
   return typeof s === "function" ? s(v) : s.replace(/\{(\w+)\}/g, (_, k) => v[k] ?? "");
@@ -423,6 +466,7 @@ function applyLang() {
   document.documentElement.lang = lang === "zh" ? "zh-CN" : "en";
   document.querySelectorAll("[data-i18n]").forEach((el) => (el.textContent = t(el.dataset.i18n)));
   document.querySelectorAll("[data-i18n-aria]").forEach((el) => el.setAttribute("aria-label", t(el.dataset.i18nAria)));
+  document.querySelectorAll("[data-i18n-ph]").forEach((el) => (el.placeholder = t(el.dataset.i18nPh)));
   $("#lang").textContent = t("langName");
   $("#lang").setAttribute("aria-label", t("langAria"));
   if (config.out) $("#dest").title = t("destTitle", { p: config.out });
@@ -434,16 +478,18 @@ const FILTERS = [
   ["docs", "fDocs", (i) => i.kind === "docs"], ["articles", "fArticles", (i) => i.kind === "articles"],
   ["other", "fOther", (i) => ["files", "archives", "media"].includes(i.kind)], ["link", "fLinks", (i) => i.status === "linked"],
 ];
+const LIB_SHOWN = 6;
 let state = null;
 let config = { out: "" };
+let library = [], libAll = false;
 
 /* ---------- helpers ---------- */
 function toast(msg) {
   const el = $("#toast"); el.textContent = msg; el.classList.add("show");
   clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove("show"), 2800);
 }
-async function api(path, body) {
-  const r = await fetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body || {}) });
+async function api(path, body) {  // POST when there is a body, GET otherwise
+  const r = await fetch(path, body && { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
   const data = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error(data.error || `Request failed (${r.status})`);
   return data;
@@ -462,11 +508,26 @@ function ago(ts) {
   const h = Math.round(m / 60); if (h < 24) return t("hAgo", { n: h });
   const d = Math.round(h / 24); return d === 1 ? t("yesterday") : t("daysAgo", { n: d });
 }
+function fmtSize(b) {  // decimal units, like the size limit (100 MB = 100,000,000 bytes)
+  if (!b) return "";
+  let i = 0;
+  while (b >= 1000 && i < 3) { b /= 1000; i++; }
+  return `${i && b < 10 ? b.toFixed(1) : Math.round(b)}\u00a0${["B", "KB", "MB", "GB"][i]}`;  // "3.1 MB" never breaks apart
+}
+function fmtTime(sec) {
+  sec = Math.max(1, Math.round(sec));
+  return sec < 60 ? t("secs", { n: sec }) : t("minSecs", { m: Math.floor(sec / 60), s: sec % 60 });
+}
+const clock = (ms) => { const s = Math.max(0, Math.floor(ms / 1000)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`; };
+const folderOf = (path) => String(path || "").split(/[\\/]/).pop();
+const bytesOf = (items) => Object.values(Object.fromEntries(items.filter((i) => i.path).map((i) => [i.path, i.size || 0]))).reduce((a, b) => a + b, 0);
 function humanize(reason) {
   const r = reason || "";
   const key = /quota|too many users/i.test(r) ? "quota"
     : /web page instead of the file/.test(r) ? "private"
     : /local network/.test(r) ? "lan"
+    : /program file/.test(r) ? "program"
+    : /GitHub API limit/.test(r) ? "ratelimit"
     : /\b401\b/.test(r) ? "signin"
     : /\b(403|419|429)\b/.test(r) ? "blocked"
     : /\b404\b/.test(r) ? "dead"
@@ -482,18 +543,29 @@ function humanize(reason) {
   return [title, key === "other" ? r : detail];
 }
 const isVideo = (u) => /youtube\.com|youtu\.be|vimeo\.com|bilibili\.com|\.(mp4|mov|webm|m4a|mp3)(\?|$)/i.test(u);
+const toggles = () => ({ depth: $("#opt-depth").checked, refresh: $("#opt-refresh").checked, allLinks: $("#opt-all").checked, maxMb: +$("#opt-max").value });
+function optsFor(url, o = toggles()) {
+  // A course remembers how it was kept: a rerun without its sub-pages would drop them from its index.
+  const prev = (library.find((c) => c.url === url) || {}).options || {};
+  return { ...o, depth: o.depth || !!prev.depth, allLinks: o.allLinks || !!prev.all_links, maxMb: Math.max(o.maxMb, +prev.max_mb || 0) };
+}
 
 /* ---------- home ---------- */
-function renderRecent() {
-  const list = recentStore.get();
-  $("#recent").hidden = !list.length;
-  $("#recent-list").innerHTML = list.map((r, i) => `
+async function loadLibrary() {
+  try { library = await api("/api/courses"); } catch { library = []; }
+  renderLibrary();
+}
+function renderLibrary() {
+  $("#library").hidden = !library.length;
+  $("#lib-list").innerHTML = (libAll ? library : library.slice(0, LIB_SHOWN)).map((c, i) => `
     <li>
       <span class="kicon" aria-hidden="true">${ICON.folder}</span>
-      <div class="rt"><b>${esc(r.title || host(r.url))}</b><span>${esc(t("recentMeta", { host: host(r.url), ago: ago(r.at), saved: r.saved, failed: r.failed }))}</span></div>
-      <button class="btn secondary small" type="button" data-rerun="${i}" title="${esc(t("checkNewTitle"))}">${ICON.refresh}${esc(t("checkNew"))}</button>
-      <button class="icon-btn" type="button" data-forget="${i}" aria-label="${esc(t("forget", { t: r.title || r.url }))}">${ICON.close}</button>
+      <button class="rt" type="button" data-view="${i}"><b>${esc(c.title)}</b><span>${esc(t("libMeta", { host: host(c.url), ago: ago(c.at * 1000), saved: c.saved, failed: c.failed, size: fmtSize(c.bytes) }))}</span></button>
+      <button class="btn secondary small" type="button" data-rerun="${i}" title="${esc(t("checkNewTitle"))}" aria-label="${esc(t("checkNewAria", { t: c.title }))}">${ICON.refresh}<span class="lbl">${esc(t("checkNew"))}</span></button>
+      <button class="icon-btn" type="button" data-folder="${i}" title="${esc(t("openFolder"))}" aria-label="${esc(t("openCourseAria", { t: c.title }))}">${ICON.folder}</button>
     </li>`).join("");
+  $("#lib-more").hidden = libAll || library.length <= LIB_SHOWN;
+  $("#lib-more").textContent = t("showAll", { n: library.length });
 }
 function showError(msg) {
   $("#url-error").textContent = msg; $("#url-error").hidden = !msg;
@@ -507,18 +579,32 @@ $("#form").addEventListener("submit", (e) => {
   if (!$("#url").value.trim()) return showError(t("emptyUrl"));
   if (!url) return showError(t("badUrl"));
   $("#url").value = url;
-  start(url);
+  start(url, optsFor(url));
 });
 document.querySelectorAll(".chip").forEach((c) => c.addEventListener("click", () => { $("#url").value = c.dataset.url; showError(""); $("#url").focus(); }));
-$("#recent-list").addEventListener("click", (e) => {
-  const list = recentStore.get();
+$("#lib-list").addEventListener("click", (e) => {
   const b = e.target.closest("button"); if (!b) return;
-  if (b.dataset.rerun) { $("#url").value = list[b.dataset.rerun].url; start(list[b.dataset.rerun].url); }
-  if (b.dataset.forget) { list.splice(b.dataset.forget, 1); recentStore.set(list); renderRecent(); }
+  const c = library[b.dataset.view ?? b.dataset.rerun ?? b.dataset.folder]; if (!c) return;
+  if (b.dataset.view) view(c);
+  else if (b.dataset.rerun) start(c.url, optsFor(c.url));
+  else api("/api/open", { course: c.name }).then(() => toast(t("opened")), (err) => toast(err.message));
+});
+$("#lib-more").addEventListener("click", () => {
+  libAll = true; renderLibrary();
+  $(`#lib-list [data-view="${LIB_SHOWN}"]`)?.focus();
 });
 $("#lang").addEventListener("click", () => {
-  lang = lang === "zh" ? "en" : "zh"; langStore.set(lang); applyLang(); renderRecent();
-  if (state) { state.finished && state.report ? onDone(state.done) : renderFeed(); }
+  lang = lang === "zh" ? "en" : "zh"; langStore.set(lang); applyLang(); renderLibrary();
+  if (state) { state.finished && state.report ? renderDone() : (renderFeed(), tick()); }
+});
+// Drop a link from another tab or the address bar anywhere on the page. Never let the browser navigate away to it.
+document.addEventListener("dragover", (e) => e.preventDefault());
+document.addEventListener("drop", (e) => {
+  e.preventDefault();
+  if ($("#home").hidden) return;
+  const dt = e.dataTransfer;
+  const url = normalizeUrl((dt.getData("text/uri-list").split(/\r?\n/).find((l) => l && !l.startsWith("#")) || dt.getData("text/plain") || ""));
+  if (url) { $("#url").value = url; showError(""); $("#url").focus(); }
 });
 
 /* ---------- run ---------- */
@@ -526,27 +612,38 @@ function show(view) {
   $("#home").hidden = view !== "home"; $("#run").hidden = view !== "run";
   window.scrollTo(0, 0);
 }
-async function start(url) {
+async function start(url, opts) {
   const go = $("#go"); go.disabled = true;
   try {
-    const opts = { url, depth: $("#opt-depth").checked, refresh: $("#opt-refresh").checked, allLinks: $("#opt-all").checked, maxMb: +$("#opt-max").value };
-    const { id } = await api("/api/jobs", opts);
-    state = { id, url, total: 0, count: 0, pages: 0, items: new Map(), report: null, filter: "all", collapsed: new Set(), finished: false };
-    resetRun(url);
-    show("run");
-    $("#run-title").focus();
-    listen();
+    const { id, opts: used } = await api("/api/jobs", { url, ...opts });  // a run already going for this URL keeps its own options
+    $("#opt-refresh").checked = false;  // a one-off: left on, every later "Check for new" would fetch everything again
+    attach(id, url, used || opts);
   } catch (err) {
-    showError(err.message === "Failed to fetch" ? t("notRunning") : err.message);
+    const msg = err.message === "Failed to fetch" ? t("notRunning") : err.message;
+    $("#home").hidden ? toast(msg) : showError(msg);
   } finally { go.disabled = false; }
+}
+function attach(id, url, opts, started = Date.now()) {
+  if (state) { state.es?.close(); clearInterval(state.timer); }
+  state = { id, url, opts, started, total: 0, count: 0, pages: 0, prog: ["looking"], items: new Map(), report: null,
+            filter: "all", query: "", collapsed: new Set(), finished: false };
+  resetRun(url);
+  show("run");
+  $("#run-title").focus();
+  state.timer = setInterval(tick, 1000);
+  listen();
 }
 function resetRun(url) {
   setStatus("busy", t("reading"), url);
   $("#bar").className = "bar indeterminate"; $("#bar span").style.width = ""; $("#bar").removeAttribute("aria-valuenow");
-  $("#run-count").textContent = t("looking");
-  $("#progress").hidden = false; $("#cancel").hidden = false; $("#run-hint").hidden = true; $("#done").hidden = true;
-  $("#filters").hidden = true; $("#feed").innerHTML = "";
+  $("#progress").hidden = false; $("#cancel").hidden = false; $("#run-hint").hidden = true; $("#done").hidden = true; $("#fail-actions").hidden = true;
+  $("#toolbar").hidden = true; $("#find").value = ""; $("#feed").innerHTML = "";
+  tick();
   document.title = t("readingTitle");
+}
+function tick() {  // progress line plus a running clock: a big file can take a while with nothing else changing
+  const s = state; if (!s || s.finished) return;
+  $("#run-count").textContent = s.cancelled ? t("stopping") : `${t(...s.prog)} · ${clock(Date.now() - s.started)}`;
 }
 function setStatus(kind, title, sub) {
   $("#status-icon").className = "status-icon" + (kind === "error" ? " error" : "");
@@ -554,17 +651,19 @@ function setStatus(kind, title, sub) {
   $("#run-title").textContent = title;
   $("#run-sub").textContent = sub || "";
 }
-function hint(text, action) {
+function hint(text, actions = []) {
   const h = $("#run-hint");
-  h.className = "hint" + (action ? " warn" : "");
-  h.innerHTML = (action ? ICON.alert : ICON.info) + `<span>${esc(text)}</span>` + (action ? `<button class="btn secondary small" type="button">${esc(action[0])}</button>` : "");
-  if (action) h.querySelector("button").onclick = action[1];
+  h.className = "hint" + (actions.length ? " warn" : "");
+  h.innerHTML = (actions.length ? ICON.alert : ICON.info) + `<span>${esc(text)}</span>`
+    + actions.map(([label], i) => `<button class="btn secondary small" type="button" data-i="${i}">${esc(label)}</button>`).join("");
+  h.querySelectorAll("button").forEach((b) => (b.onclick = actions[b.dataset.i][1]));
   h.hidden = false;
 }
 function setFilter(key) {
   state.filter = key; renderFilters(); renderFeed();
-  $("#filters").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+  $("#toolbar").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
 }
+const retry = () => start(state.url, { ...state.opts, refresh: false });  // failed items are fetched again, saved ones kept
 
 function listen() {
   const s = state, es = new EventSource(`/api/jobs/${s.id}/events`);
@@ -580,76 +679,110 @@ function listen() {
 function onLine(line) {
   const s = state;
   let m;
-  if ((m = line.match(/^\[page\s*\] (\S+) \((.*)\)$/))) {
+  if ((m = line.match(/^\[failed\] page (\S+): (.*)$/))) {
+    s.pageError = m[2];
+  } else if ((m = line.match(/^\[page\s*\] (\S+) \((.*)\)$/))) {
     s.pages++;
-    if (s.pages > 1) $("#run-count").textContent = t("subpages", { n: s.pages });
+    if (s.pages > 1) s.prog = ["subpages", { n: s.pages }];
     if (/browser:/.test(m[2]) && !/browser failed/.test(m[2])) hint(t("hintBrowser"));
     if (/browser failed/.test(m[2])) hint(t("hintNoBrowser"));
     if (/article:/.test(m[2]) && s.pages === 1) hint(t("hintArticle"));
   } else if ((m = line.match(/^(\d+) links to process -> (.+)$/))) {
     s.total = +m[1];
-    s.title = m[2].split(/[\\/]/).pop();
+    s.title = folderOf(m[2]);
     setStatus("busy", s.title, t("found", { n: s.total, host: host(s.url) }));
     $("#bar").className = "bar";
     document.title = `0/${s.total} · CourseKeep`;
-    if (!s.total) $("#run-count").textContent = t("nothing");
-  } else if ((m = line.match(/^\[(ok|exists|linked|failed)\s*\] (.+?) \/ (.+)$/))) {
+    s.prog = s.total ? ["count", { c: 0, t: s.total }] : ["nothing"];
+  } else if ((m = line.match(/^\[(ok|exists|linked|failed)\s*\] (.+?) \/ (.+?)(?:: (.*))?$/))) {
+    // "[ok    ] Week 1 / Lecture 1 - Slides: pdf" or "[failed] Week 1 / Problem set: 404 ...". Names never contain ":".
+    const [, status, section, name, detail = ""] = m;
+    const saved = status === "ok" || status === "exists";
     s.count++;
-    s.items.set(m[2] + "\u0000" + m[3], { section: m[2], name: m[3], status: m[1], kind: m[1] === "linked" ? "link" : "", fresh: true });
+    s.items.set(section + "\u0000" + name, { section, name, status, fresh: true, reason: status === "failed" ? detail : "",
+                                             kind: status === "linked" ? "link" : saved && KIND_KEYS.includes(detail) ? detail : "" });
     const pct = s.total ? Math.round((s.count / s.total) * 100) : 0;
     $("#bar span").style.width = pct + "%"; $("#bar").setAttribute("aria-valuenow", pct);
-    $("#run-count").textContent = t("count", { c: s.count, t: s.total });
+    s.prog = ["count", { c: s.count, t: s.total }];
     document.title = `${s.count}/${s.total} · CourseKeep`;
     renderFeed();
-  } else if ((m = line.match(/^\[failed\] page (\S+): (.*)$/))) {
-    s.pageError = m[2];
-  }
+  } else return;
+  tick();
 }
 function onDone(done) {
-  const { report, last } = done;
-  const s = state;
-  s.finished = true; s.done = done;
+  const s = state, { report, last } = done;
+  s.finished = true; s.done = done; s.cancelled = !!done.cancelled; clearInterval(s.timer);  // the server knows, whichever tab cancelled
   $("#cancel").hidden = true;
   if (!report) {
-    if (s.cancelled) return fail(t("cancelled"), t("cancelledD"));
+    const again = () => start(s.url, s.opts);  // the same run again; a cancelled "download everything again" stays one
+    if (s.cancelled) return fail(t("cancelled"), t("cancelledD"), [t("resume"), again]);
     const [title, detail] = humanize(s.pageError || last);
-    return fail(t("cantOpen"), `${title}. ${detail === (s.pageError || last) ? "" : detail}`.trim());
+    return fail(t("cantOpen"), `${title}. ${detail === (s.pageError || last) ? "" : detail}`.trim(), [t("tryAgain"), again]);
   }
-  s.report = report;
-  s.items = new Map(report.items.map((i) => [i.section + "\u0000" + i.name, i]));
-  const items = report.items;
+  s.report = report; s.course = folderOf(report.folder);
+  const dups = (report.duplicates_removed || []).length;
+  if (dups) toast(t("dupNote", { n: dups }));
+  renderDone();
+  loadLibrary();  // so Home already lists this course
+  $("#run-title").focus();
+}
+async function view(c) {  // a course kept earlier: its last run's results, without downloading anything
+  try {
+    const report = await api(`/api/course?course=${encodeURIComponent(c.name)}`);
+    if (state) { state.es?.close(); clearInterval(state.timer); }
+    state = { id: null, url: report.url || c.url, opts: optsFor(report.url || c.url), past: c, course: c.name, report, items: new Map(),
+              filter: "all", query: "", collapsed: new Set(), finished: true };
+    show("run");
+    $("#find").value = "";
+    renderDone();
+    $("#run-title").focus();
+  } catch (err) { toast(err.message); loadLibrary(); }
+}
+function renderDone() {  // everything on the results screen; no side effects, so switching language can call it again
+  const s = state, report = s.report, items = report.items;
+  s.items = new Map(items.map((i) => [i.section + "\u0000" + i.name, i]));
   const saved = items.filter((i) => i.status === "ok" || i.status === "exists").length;
   const fresh = items.filter((i) => i.new).length;
   const linked = items.filter((i) => i.status === "linked").length;
   const failed = items.filter((i) => i.status === "failed").length;
-  const headline = s.cancelled ? t("hStopped")
+  const headline = s.past ? report.title
+    : s.cancelled ? t("hStopped")
     : !saved ? t("hNothing")
     : fresh === saved ? t("hKept", { n: saved })
     : fresh ? t("hKeptNew", { n: fresh })
     : t("hUpToDate");  // a rerun: everything was saved before
-  setStatus("done", headline, fresh && fresh < saved ? t("inTotal", { title: report.title, n: saved }) : report.title);
-  $("#progress").hidden = true;
+  const sub = s.past ? [host(s.url), t("lastRun", { ago: ago(s.past.at * 1000) })]
+    : [fresh && fresh < saved ? t("inTotal", { title: report.title, n: saved }) : report.title, report.seconds ? t("took", { t: fmtTime(report.seconds) }) : ""];
+  setStatus("done", headline, [...sub, fmtSize(bytesOf(items))].filter(Boolean).join(" · "));
+  $("#progress").hidden = true; $("#fail-actions").hidden = true;
   $("#stats").innerHTML = [
-    [saved, t("stSaved")], [fresh, t("stNew")], [linked, t("stLinks")], [failed, t("stIssues"), failed ? "bad" : ""],
+    [saved, t("stSaved")], [fresh, t(s.past ? "stNewLast" : "stNew")], [linked, t("stLinks")], [failed, t("stIssues"), failed ? "bad" : ""],
   ].map(([n, l, c]) => `<div class="stat ${c || ""}"><b>${n}</b><span>${esc(l)}</span></div>`).join("");
-  $("#zip").href = `/api/jobs/${s.id}/zip`;
+  $("#zip").href = `/api/zip?course=${encodeURIComponent(s.course)}`;
+  $("#again").textContent = t(s.past ? "checkNew" : "again");
   $("#done").hidden = false;
   $("#run-hint").hidden = true;
-  if (failed && !s.cancelled) hint(t("failHint", { n: failed }), [t("showThem"), () => setFilter("issues")]);
-  const dups = (report.duplicates_removed || []).length;
-  if (dups && !s.dupShown) { toast(t("dupNote", { n: dups })); s.dupShown = true; }
-  document.title = `✓ ${report.title} · CourseKeep`;
-  const list = recentStore.get().filter((r) => r.url !== s.url);
-  list.unshift({ url: s.url, title: report.title, at: Date.now(), saved, failed });
-  recentStore.set(list.slice(0, 8));
+  if (failed && !s.cancelled) {
+    // Files over the size limit have a one-click fix: the next limit up. A past course already has "Check for new" for retrying.
+    const limit = [...$("#opt-max").options].map((o) => +o.value).find((n) => n > (s.opts.maxMb || 100));
+    const big = limit && items.some((i) => i.status === "failed" && /too big/.test(i.reason || ""));
+    hint(t("failHint", { n: failed }), [[t("showThem"), () => setFilter("issues")],
+      ...(big ? [[t("raiseLimit", { n: fmtSize(limit * 1e6) }), () => start(s.url, { ...s.opts, refresh: false, maxMb: limit })]]
+        : s.past ? [] : [[t("tryAgain"), retry]])]);
+  }
+  document.title = `${s.past ? "" : "✓ "}${report.title} · CourseKeep`;
   renderFilters();
   renderFeed();
-  $("#run-title").focus();
 }
-function fail(title, detail) {
+function fail(title, detail, action) {
+  const s = state;
+  s.finished = true; clearInterval(s.timer);
   setStatus("error", title, detail);
   $("#progress").hidden = true;
   $("#done").hidden = true;
+  $("#fail-actions").hidden = !action;
+  $("#fail-actions").innerHTML = action ? `<button class="btn primary" type="button">${ICON.refresh}<span>${esc(action[0])}</span></button>` : "";
+  if (action) $("#fail-actions button").onclick = action[1];
   document.title = "CourseKeep";
 }
 
@@ -659,11 +792,22 @@ function renderFilters() {
   const btns = FILTERS.map(([key, label, fn]) => [key, t(label), items.filter(fn).length]).filter(([k, , n]) => k === "all" || n);
   $("#filters").innerHTML = btns.map(([k, l, n]) => `<button type="button" data-filter="${k}" aria-pressed="${state.filter === k}">${esc(l)}<span class="n">${n}</span></button>`).join("");
   $("#filters").hidden = btns.length < 3;
+  $("#find-box").hidden = items.length < 8;
+  $("#toolbar").hidden = $("#filters").hidden && $("#find-box").hidden;
 }
 $("#filters").addEventListener("click", (e) => {
   const b = e.target.closest("button[data-filter]"); if (!b) return;
   state.filter = b.dataset.filter; renderFilters(); renderFeed();
   $(`#filters [data-filter="${state.filter}"]`).focus();
+});
+$("#find").addEventListener("input", (e) => { state.query = e.target.value; renderFeed(); });
+$("#find").addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && e.target.value) { e.target.value = ""; state.query = ""; renderFeed(); }
+});
+document.addEventListener("keydown", (e) => {  // "/" jumps to the search box, as on GitHub and in most docs sites
+  if (e.key !== "/" || e.ctrlKey || e.metaKey || e.altKey || $("#run").hidden || $("#toolbar").hidden || $("#find-box").hidden) return;
+  if (/^(INPUT|SELECT|TEXTAREA)$/.test(document.activeElement.tagName)) return;
+  e.preventDefault(); $("#find").focus();
 });
 function row(it) {
   const k = it.status === "failed" ? "failed" : it.status === "linked" ? (isVideo(it.url || "") ? "video" : "link") : it.kind || "pending";
@@ -673,8 +817,8 @@ function row(it) {
     meta = `<b>${esc(title)}</b>${detail ? " · " + esc(detail) : ""}`;
   } else if (it.status === "linked") meta = esc(k === "video" ? t("mVideo") : t("mLink"));
   else if (!it.kind) meta = esc(it.status === "exists" ? t("mExists") : t("mSaved"));
-  else meta = esc((KIND_KEYS.includes(it.kind) ? t("k" + it.kind) : t("kfiles"))
-    + (/^same content/.test(it.reason || "") ? t("mSame") : it.status === "exists" ? t("mAlready") : ""))
+  else meta = esc([KIND_KEYS.includes(it.kind) ? t("k" + it.kind) : t("kfiles"), fmtSize(it.size),
+                   /^same content/.test(it.reason || "") ? t("mSame") : it.status === "exists" ? t("mAlready") : ""].filter(Boolean).join(" · "))
     + (it.new ? `<span class="badge">${esc(t("badgeNew"))}</span>` : "");
   const open = it.path ? `<button class="icon-btn" type="button" data-open="${esc(it.path)}" aria-label="${esc(t("openAria", { name: it.name }))}" title="${esc(t("open"))}">${ICON.folder}</button>` : "";
   const src = it.url ? `<a class="icon-btn" href="${esc(safeHref(it.url))}" target="_blank" rel="noopener noreferrer" aria-label="${esc(t("originalAria", { name: it.name }))}" title="${esc(t("original"))}">${ICON.open}</a>` : "";
@@ -685,46 +829,46 @@ function row(it) {
 }
 function renderFeed() {
   const fn = FILTERS.find(([k]) => k === state.filter)[2];
+  const q = state.query.trim().toLowerCase();
   const groups = new Map();
   for (const it of state.items.values()) {
-    if (!fn(it)) continue;
+    if (!fn(it) || (q && !`${it.name} ${it.section}`.toLowerCase().includes(q))) continue;
     if (!groups.has(it.section)) groups.set(it.section, []);
     groups.get(it.section).push(it);
   }
   $("#feed").innerHTML = groups.size ? [...groups].map(([sec, list]) => `
-    <details class="sec" data-sec="${esc(sec)}" ${state.collapsed.has(sec) ? "" : "open"}>
+    <details class="sec" data-sec="${esc(sec)}" ${state.collapsed.has(sec) && !q ? "" : "open"}>
       <summary>${ICON.chevron}<span>${esc(sec === "_misc" ? t("secOther") : sec === "_unsorted" ? t("secCode") : sec)}</span><span class="count">${list.length}</span></summary>
       <ul class="list">${list.map(row).join("")}</ul>
-    </details>`).join("") : state.finished ? `<p class="empty">${esc(t("empty"))}</p>` : "";
+    </details>`).join("") : state.finished ? `<p class="empty">${esc(q ? t("noMatch", { q: state.query.trim() }) : t("empty"))}</p>` : "";
   state.items.forEach((it) => (it.fresh = false));
 }
 $("#feed").addEventListener("toggle", (e) => {
-  const sec = e.target.dataset && e.target.dataset.sec; if (sec === undefined) return;
+  const sec = e.target.dataset && e.target.dataset.sec; if (sec === undefined || state.query.trim()) return;  // a search opens every section
   e.target.open ? state.collapsed.delete(sec) : state.collapsed.add(sec);
 }, true);
 $("#feed").addEventListener("click", async (e) => {
   const b = e.target.closest("button[data-open]"); if (!b) return;
-  try { await api("/api/open", { job: state.id, rel: b.dataset.open }); } catch (err) { toast(err.message); }
+  try { await api("/api/open", { course: state.course, rel: b.dataset.open }); } catch (err) { toast(err.message); }
 });
 $("#open-folder").addEventListener("click", async () => {
-  try { await api("/api/open", { job: state.id }); toast(t("opened")); } catch (err) { toast(err.message); }
+  try { await api("/api/open", { course: state.course }); toast(t("opened")); } catch (err) { toast(err.message); }
 });
 $("#cancel").addEventListener("click", async () => {
   state.cancelled = true;
-  $("#cancel").hidden = true; $("#run-count").textContent = t("stopping");
-  try { await api(`/api/jobs/${state.id}/cancel`); } catch {}
+  $("#cancel").hidden = true; tick();
+  try { await api(`/api/jobs/${state.id}/cancel`, {}); } catch {}
 });
 function goHome() {
   if (state && !state.finished) { toast(t("stillRunning")); return; }
-  if (state && state.es) state.es.close();
-  state = null; show("home"); renderRecent(); document.title = "CourseKeep";
+  if (state) { state.es?.close(); clearInterval(state.timer); }
+  state = null; show("home"); loadLibrary(); document.title = "CourseKeep";
   $("#url").focus(); $("#url").select();
 }
 $("#back").addEventListener("click", goHome);
-$("#again").addEventListener("click", goHome);
+$("#again").addEventListener("click", () => (state && state.past ? start(state.url, optsFor(state.url)) : goHome()));
 $("#home-link").addEventListener("click", (e) => { e.preventDefault(); goHome(); });
 $("#dest").addEventListener("click", async () => { try { await api("/api/open", {}); } catch (err) { toast(err.message); } });
-window.addEventListener("beforeunload", (e) => { if (state && !state.finished) { e.preventDefault(); e.returnValue = ""; } });
 
 /* ---------- boot ---------- */
 applyLang();
@@ -735,7 +879,11 @@ fetch("/api/config").then((r) => r.json()).then((c) => {
   $("#dest").hidden = false;
   applyLang();
 }).catch(() => {});
-renderRecent();
+loadLibrary();
+// A download keeps going when its tab is reloaded or closed: reopening CourseKeep picks it back up.
+api("/api/jobs").then(([job]) => {
+  if (job && !state) { attach(job.id, job.url, job.opts, job.started * 1000); toast(t("resumed")); }
+}).catch(() => {});
 </script>
 </body>
 </html>

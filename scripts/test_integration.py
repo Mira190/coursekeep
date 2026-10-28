@@ -1,5 +1,7 @@
 """End-to-end run of coursekeep.py against a fake course site on localhost (no internet): python scripts/test_integration.py"""
+import html
 import json
+import re
 import subprocess
 import sys
 import tempfile
@@ -8,6 +10,7 @@ import time
 from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from urllib.parse import unquote
 
 import requests
 
@@ -17,7 +20,7 @@ HERE = Path(__file__).resolve().parent
 site, out = Path(tempfile.mkdtemp()), Path(tempfile.mkdtemp())
 (site / "files").mkdir()
 (site / "private").mkdir()
-(site / "index.html").write_text("""<html><head><title>Fixture Course</title></head><body>
+(site / "index.html").write_text("""<html><head><title>Fixture Course <img src=x onerror=alert(1)> & co</title></head><body>
 <nav><a href="/">Home</a> <a href="/other.html">Other course</a></nav>
 <h2>Week 1</h2><ul>
 <li>Lecture 1: Intro - <a href="files/lec1.pdf">Slides</a> - <a href="files/lec1.pptx">Deck</a></li>
@@ -96,7 +99,15 @@ def grab(*flags, dest=out):
     r = subprocess.run([sys.executable, "-X", "utf8", str(HERE / "coursekeep.py"), URL, "-o", str(dest), "--browser", "never",
                         "--max-mb", "1", *flags], capture_output=True, text=True, encoding="utf-8", timeout=120)
     assert r.returncode == 0, r.stdout + r.stderr
-    return {i["name"]: i for i in json.loads(next(dest.glob("*/report.json")).read_text(encoding="utf-8"))["items"]}
+    items = {i["name"]: i for i in json.loads(next(dest.glob("*/report.json")).read_text(encoding="utf-8"))["items"]}
+    # The web app's progress feed: one whole line per item (8 threads print at once), with its type or why it failed.
+    lines = [m.groups() for m in re.finditer(r"^\[(ok|exists|linked|failed)\s*\] (.+?) / (.+?)(?:: (.*))?$", r.stdout, re.M)]
+    assert len(lines) == len(items), r.stdout
+    for status, _, name, detail in lines:
+        item = items[name]
+        assert status == item["status"] or "same content" in item["reason"], (name, status, item)  # dedup runs after the downloads
+        assert detail == (item["kind"] if item["path"] else item["reason"] or None), (name, detail, item)
+    return items
 
 
 items = grab()
@@ -122,7 +133,14 @@ assert prog["status"] == "failed" and "program file (.exe)" in prog["reason"], p
 assert items["Huge page"]["status"] == "failed" and "too big" in items["Huge page"]["reason"]          # endless page
 course = next(out.glob("*/"))
 assert not list(course.rglob("*.exe"))
-assert r"- \[Setup\](evil) — failed" in (course / "index.md").read_text(encoding="utf-8")      # not a clickable link
+index_md = (course / "index.md").read_text(encoding="utf-8")
+assert r"- \[Setup\](evil) — failed" in index_md and "<img" not in index_md                       # page text stays text
+page = (course / "index.html").read_text(encoding="utf-8")                                          # the offline index
+assert "<img" not in page and "&lt;img src=x onerror=alert(1)&gt; &amp; co" in page and "<script" not in page, page[:400]
+assert '<a href="Week%201/slides/Lecture%201%20Intro%20-%20Deck.pptx">Lecture 1 Intro - Deck</a>' in page
+assert "[Setup](evil) <span class=\"m\">failed: program file (.exe)" in page
+local = [unquote(html.unescape(h)) for h in re.findall(r'<a href="([^"]+)"', page) if not h.startswith("http")]
+assert len(local) == 5 and all((course / h).is_file() for h in local), local                       # every local link works
 lec1 = course / items["Lecture 1 Intro - Slides"]["path"]
 if sys.platform == "win32":                                                                          # tagged like a browser download
     assert "ZoneId=3" in Path(f"{lec1}:Zone.Identifier").read_text(encoding="utf-8")
@@ -130,6 +148,9 @@ elif sys.platform == "darwin":
     assert subprocess.run(["xattr", "-p", "com.apple.quarantine", str(lec1)], capture_output=True).returncode == 0
 assert not list(course.rglob("*.part")) and not list(course.rglob("Cut file*")), "no partial files left behind"
 assert len(list(course.rglob("*.pdf"))) == 2, "lecture 1 is stored once, plus _CON.pdf"
+report = json.loads((course / "report.json").read_text(encoding="utf-8"))
+assert report["options"] == {"depth": 0, "all_links": False, "max_mb": 1} and report["seconds"] >= 0, report
+assert items["Lecture 1 Intro - Deck"]["size"] == 2004 and items["Dead link"]["size"] is None
 md = (course / "Week 1" / "articles" / "Lecture notes.md").read_text(encoding="utf-8")
 assert "gradient descent moves weight 39" in md and "Source: http" in md
 

@@ -2,6 +2,32 @@
 
 Versions follow [Semantic Versioning](https://semver.org). The version is set in `scripts/coursekeep.py` (`__version__`).
 
+## Unreleased
+
+Web app usability, from a look at how Firecrawl, ArchiveBox, HTTrack, JDownloader and course downloaders handle the same job (`docs/research.md`).
+
+**Fixes**
+
+- Progress lines from parallel downloads could merge into one line, which garbled an item's name in the web app and undercounted progress.
+- "Check for new" now repeats the options a course was kept with. Before, a course kept with sub-pages was rerun without them, and they dropped out of its index.
+- Reloading or closing the tab during a download no longer loses it: the page picks the run back up.
+- Starting the app twice opens the copy that is already running. On Windows, two copies could share one port before.
+- `index.md` escapes HTML in the page title.
+
+**New**
+
+- **Your courses**: built from the download folder instead of the browser's storage, so it survives a new browser or port. You can view a course's last results without downloading again.
+- **Live progress**: each file's type, or why it failed, shows as it arrives, plus a running clock.
+- **Results**: search (`/`), file sizes, total size and run time.
+- **Fixing failures**: *Try again*, *Allow up to 500 MB* for files over the limit, and *Continue* after a cancel.
+- **`index.html`** in every course folder: the index as a plain page any browser opens, also inside the zip. No scripts; all page text is escaped.
+- **Smaller touches**:
+  - "Download everything again" switches itself off after one run.
+  - You can drop a link onto the page.
+  - On phones, the filter chips scroll sideways.
+  - Screen readers no longer announce every progress tick.
+- **`report.json`** now records the run's options, each file's size and the run time.
+
 ## 1.0.1 - 2026-10-27
 
 Security fixes.

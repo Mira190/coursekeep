@@ -10,6 +10,7 @@ One command turns a course page or blog post into a local folder:
 ```
 <out>/<page title>/
   index.md        every material by section: local file, link only, or why it failed (🆕 = new since last run)
+  index.html      the same list as a page the user can open in any browser
   _page.md        the page's own text
   manifest.json   what was saved when; a rerun fetches only what is new
   <Week / section>/slides | pdf | docs | articles | files
