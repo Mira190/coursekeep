@@ -1,4 +1,4 @@
-from coursekeep import NeedsBrowser, check_text, one_line, download_url, link_density, norm_url, readme_urls, label, needs_browser, parse_links, plan, raw_urls, safe
+from coursekeep import NeedsBrowser, check_text, html_index, one_line, download_url, link_density, norm_url, readme_urls, label, needs_browser, parse_links, plan, raw_urls, safe
 
 H = "themodernsoftware.dev"
 L = lambda url, nav=False: {"url": url, "nav": nav}
@@ -80,4 +80,12 @@ except RuntimeError as e:
     assert "404" in str(e)
 assert one_line(TimeoutError()) == "TimeoutError"                    # an error without a message must not crash the run
 assert one_line(RuntimeError("line one\n  line two")) == "line one line two"
+page = html_index('<img src=x onerror=alert(1)> & "co"', "https://x.org/?a=1&b=<2>", [  # index.html: page text stays text
+    {"section": "<b>Week 1</b>", "name": "a", "url": 'https://x.org/a"onmouseover="x', "status": "ok", "reason": "", "new": True,
+     "path": "Week 1/pdf/a b.pdf", "kind": "pdf", "size": 1234},
+    {"section": "_misc", "name": "c", "url": "https://x.org/c", "status": "failed", "reason": "404 <script>", "new": False,
+     "path": None, "kind": "", "size": None}])
+assert "<img" not in page and "<b>" not in page and "<script" not in page and '"onmouseover' not in page, page
+assert "&lt;img src=x onerror=alert(1)&gt; &amp; &quot;co&quot;" in page and "&lt;b&gt;Week 1&lt;/b&gt;" in page
+assert '<a href="Week%201/pdf/a%20b.pdf">a</a>' in page and "PDF · 1.2 KB" in page and "<h2>Other</h2>" in page
 print("ok")

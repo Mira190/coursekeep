@@ -84,7 +84,7 @@ other = ThreadingHTTPServer(("127.0.0.1", 0), type("Other", (BaseHTTPRequestHand
     h.send_response(200), h.end_headers(), h.wfile.write(b'{"version": "1", "out": "/elsewhere"}'))}))
 threading.Thread(target=other.serve_forever, daemon=True).start()
 assert not app.serves_us(other.server_address[1])                                              # ...not one saving elsewhere
-other.server_close()
+other.shutdown(); other.server_close()                                                        # stop its loop, then close
 assert not app.serves_us(other.server_address[1])                                              # nothing listening
 
 job = app.Job.__new__(app.Job)  # progress lines carry page text; a section titled like the header line must not move the folder
