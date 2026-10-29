@@ -1,4 +1,7 @@
-from coursekeep import NeedsBrowser, check_text, download_url, link_density, norm_url, readme_urls, label, needs_browser, parse_links, plan, raw_urls, safe
+import tempfile
+from pathlib import Path
+
+from coursekeep import Dedup, NeedsBrowser, check_text, download_url, link_density, norm_url, readme_urls, label, needs_browser, parse_links, plan, raw_urls, safe
 
 H = "themodernsoftware.dev"
 L = lambda url, nav=False: {"url": url, "nav": nav}
@@ -78,4 +81,17 @@ try:
     raise AssertionError("soft 404 accepted")
 except RuntimeError as e:
     assert "404" in str(e)
+
+# --refresh: A now serves what Q held, Q serves something new. Q's old bytes must not make A a "copy" of Q.
+with tempfile.TemporaryDirectory() as tmp:
+    a, q = (Path(tmp) / "W" / "pdf" / n for n in ("A.pdf", "Q.pdf"))
+    a.parent.mkdir(parents=True)
+    a.write_bytes(b"%PDF old A"), q.write_bytes(b"%PDF old Q")  # same size: both hashes get cached
+    dedup = Dedup(Path(tmp), {a, q})
+    a.write_bytes(b"%PDF old Q"), q.write_bytes(b"%PDF new Q")
+    dedup.forget([a, q])
+    assert dedup.keep_once(a) == a and dedup.keep_once(q) == q and a.read_bytes() == b"%PDF old Q"
+    q.write_bytes(b"%PDF old Q")  # and a real copy, later on the page, still goes
+    dedup.forget([q])
+    assert dedup.keep_once(q) == a and not q.exists()
 print("ok")

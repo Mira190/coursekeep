@@ -1,5 +1,6 @@
 """End-to-end run of coursekeep.py against a fake course site on localhost (no internet): python scripts/test_integration.py"""
 import json
+import re
 import subprocess
 import sys
 import tempfile
@@ -96,6 +97,7 @@ def grab(*flags, dest=out):
     r = subprocess.run([sys.executable, "-X", "utf8", str(HERE / "coursekeep.py"), URL, "-o", str(dest), "--browser", "never",
                         "--max-mb", "1", *flags], capture_output=True, text=True, encoding="utf-8", timeout=120)
     assert r.returncode == 0, r.stdout + r.stderr
+    grab.stdout = r.stdout
     return {i["name"]: i for i in json.loads(next(dest.glob("*/report.json")).read_text(encoding="utf-8"))["items"]}
 
 
@@ -108,6 +110,7 @@ assert items["_CON"]["status"] == "ok" and items["_CON"]["path"].endswith("/_CON
 mirror = items["Mirror of lecture 1"]                                                                 # same file, two links
 assert mirror["status"] == "exists" and "same content" in mirror["reason"] and not mirror["new"], mirror
 assert mirror["path"] == items["Lecture 1 Intro - Slides"]["path"]
+assert re.search(r"^\[dedup \] .+ / Mirror of lecture 1: same content as ", grab.stdout, re.M), grab.stdout  # corrects its [ok]
 assert "Lecture 1 again, with tracking" not in items                                                  # utm_* is the same URL
 assert items["Broken PDF"]["status"] == "failed" and "not a .pdf" in items["Broken PDF"]["reason"]   # login page posing as PDF
 assert items["Dead link"]["status"] == "failed" and "404" in items["Dead link"]["reason"]

@@ -601,6 +601,9 @@ function onLine(line) {
     $("#run-count").textContent = t("count", { c: s.count, t: s.total });
     document.title = `${s.count}/${s.total} · CourseKeep`;
     renderFeed();
+  } else if ((m = line.match(/^\[dedup\s*\] (.+?) \/ (.+): (same content as .+)$/))) {
+    const it = s.items.get(m[1] + "\u0000" + m[2]);   // downloaded, then found to be a copy of an earlier link's file
+    if (it) { it.status = "exists"; it.reason = m[3]; renderFeed(); }
   } else if ((m = line.match(/^\[failed\] page (\S+): (.*)$/))) {
     s.pageError = m[2];
   }
@@ -672,7 +675,7 @@ function row(it) {
     const [title, detail] = it.reason ? humanize(it.reason) : [STR[lang].r.other[0], ""];
     meta = `<b>${esc(title)}</b>${detail ? " · " + esc(detail) : ""}`;
   } else if (it.status === "linked") meta = esc(k === "video" ? t("mVideo") : t("mLink"));
-  else if (!it.kind) meta = esc(it.status === "exists" ? t("mExists") : t("mSaved"));
+  else if (!it.kind) meta = esc(it.status === "exists" ? t("mExists") + (/^same content/.test(it.reason || "") ? t("mSame") : "") : t("mSaved"));
   else meta = esc((KIND_KEYS.includes(it.kind) ? t("k" + it.kind) : t("kfiles"))
     + (/^same content/.test(it.reason || "") ? t("mSame") : it.status === "exists" ? t("mAlready") : ""))
     + (it.new ? `<span class="badge">${esc(t("badgeNew"))}</span>` : "");

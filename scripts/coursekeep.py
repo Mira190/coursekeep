@@ -382,6 +382,14 @@ class Dedup:
     def twin(self, p):
         return next((q for q in self.groups.get(self.group(p), []) if q != p and q.exists() and self.key(q) == self.key(p)), None)
 
+    def forget(self, paths):
+        """Drop what was cached for files this run downloaded again: their bytes, and maybe their size, are new."""
+        paths = set(paths)
+        for group in self.groups.values():
+            group[:] = [q for q in group if q not in paths]
+        for p in paths:
+            self.keys.pop(p, None)
+
     def keep_once(self, p):
         """The earlier identical file (and `p` is deleted), or `p` itself."""
         self.keys.pop(p, None)  # --refresh may have replaced the bytes at this path
@@ -672,7 +680,18 @@ def main():
     if "p" in _pw:
         _pw["p"].stop()
     # After the parallel downloads and in page order, so the first link to a file always keeps it (not the fastest one).
-    results = [kept(path) if status == "ok" else (status, path) for status, path in results]
+    # A later link's file may hold new bytes (--refresh), so it only counts as a twin once its own turn has come.
+    dedup.forget(path for status, path in results if status == "ok")
+    for i, (job, (status, path)) in enumerate(zip(jobs, results)):
+        if status != "ok":
+            continue
+        try:
+            results[i] = kept(path)
+        except OSError as e:  # e.g. a virus scanner holds the file: keep both copies rather than lose the whole run
+            print(f"[dedup ] {job['sec']} / {job['name']}: not checked ({e})"[:200])
+            continue
+        if results[i][0] != "ok":  # its progress line said ok
+            print(f"[dedup ] {job['sec']} / {job['name']}: {results[i][0].removeprefix('exists: ')}")
 
     today, new = datetime.date.today().isoformat(), 0
     lines, cur, items = [f"# {title}\n\nSource: {a.url}\n"], None, []
